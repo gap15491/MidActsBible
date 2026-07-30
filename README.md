@@ -1,116 +1,102 @@
-# The KJV Rightly Divided
+# The KJV Rightly Divided — study Bible + notes app
 
-A King James Bible reordered on the **right-division** principle (2 Timothy 2:15), separating
-Paul's epistles to the Body of Christ from the Prophetic Program written to Israel. Mid-Acts
-framework — the Body of Christ begins at **Acts 9**.
+A King James Bible reordered on the **right-division** principle (2 Timothy 2:15), with a
+mid-Acts / Acts 9 framework, book introductions, a commentary layer, and — now — **user
+accounts with private chapter- and verse-notes** stored in Postgres.
 
-The whole thing is two self-contained static HTML files. No server code, no database.
+## What's here
+- `app.py` — Flask backend: serves the site, handles registration/login/logout, and a notes API.
+- `index.html` — the reordered study Bible (served at `/`).
+- `chart.html` — the companion division chart (served at `/chart.html`).
+- `requirements.txt`, `Dockerfile` — Python app, run with gunicorn.
+- `src/` — the build system that generates the HTML (`build.sh`, `build_bible.py`, `content.py`, `books/`).
 
-- `index.html` — the reordered study Bible (all 66 books, book intros, front/back matter,
-  verse/paragraph toggle, commentary layer, per-verse notes).
-- `chart.html` — the companion division chart.
+## How notes work
+- Anyone can **read** the Bible. To **save notes** a visitor registers with an email + password.
+- Each user's notes are **private to them**. Passwords are hashed (never stored in plain text);
+  login uses a signed session cookie.
+- **Verse notes:** in Verse view, tap a verse number → a "My note" box appears in the panel.
+- **Chapter notes:** each chapter has a **✎ Note** button that opens a whole-chapter note.
+- A small dot marks verses that have a note; the ✎ Note button fills in when a chapter note exists.
+
+Notes are stored in a `notes` table keyed by `(user, book, chapter, verse)` — `verse` is NULL for
+a chapter-level note.
 
 ---
 
-## Deploy to Railway
+## Deploy to Railway (app + Postgres)
 
-Railway serves this as a static site via the included `Dockerfile` (Caddy). Every push
-to GitHub auto-redeploys.
+1. **Push this repo to GitHub** (see below).
+2. **Create the app service:** railway.com/new → Deploy from GitHub repo → select this repo.
+   Railway builds the `Dockerfile` (Python + gunicorn).
+3. **Add Postgres:** in the same Railway project, click **New → Database → PostgreSQL**.
+4. **Give the app the database URL:** open the app service → **Variables** → add
+   `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (Railway autocompletes the reference).
+   The app rewrites the `postgres://` scheme automatically and creates its tables on first boot.
+5. **Set a secret key:** in the app service **Variables**, add `SECRET_KEY` to a long random
+   string (this signs login cookies — keep it private). e.g. generate one with
+   `python -c "import secrets; print(secrets.token_hex(32))"`.
+6. **Redeploy.** Open the generated `*.up.railway.app` URL. Register an account and start taking notes.
 
-1. Push this repo to GitHub (see below).
-2. Go to **railway.com/new** → **Deploy from GitHub repo**.
-3. Connect your GitHub account and select this repository.
-4. Railway builds the `Dockerfile` and deploys. When it finishes, open the generated
-   `*.up.railway.app` URL.
-   - The Bible is at `/` (index.html); the chart is at `/chart.html`.
+### Custom domain
+App service → **Settings → Networking → Custom Domain** → add the CNAME at your DNS provider.
+SSL is automatic.
 
-### Custom domain (optional)
-In your Railway service: **Settings → Networking → Custom Domain** → add your domain →
-create the CNAME record Railway gives you at your DNS provider. SSL is issued automatically.
-
-### Push this repo to GitHub
+### Push to GitHub
 ```bash
 cd kjv-rightly-divided
-git init
-git add .
-git commit -m "KJV Rightly Divided — reordered study Bible"
-# create an empty repo on github.com first, then:
+git init && git add . && git commit -m "KJV Rightly Divided — study Bible + notes app"
 git remote add origin https://github.com/<you>/kjv-rightly-divided.git
-git branch -M main
-git push -u origin main
+git branch -M main && git push -u origin main
+# or: gh repo create kjv-rightly-divided --public --source=. --push
 ```
-(Or with the GitHub CLI: `gh repo create kjv-rightly-divided --public --source=. --push`.)
 
 ---
 
-## Editing the Bible (regenerating the HTML)
+## Environment variables
+| Variable | Required | Purpose |
+|---|---|---|
+| `DATABASE_URL` | Yes (prod) | Postgres connection. On Railway set to `${{Postgres.DATABASE_URL}}`. If unset, the app uses a local SQLite file (dev only). |
+| `SECRET_KEY` | Yes (prod) | Signs session cookies. Use a long random value. |
+| `PORT` | auto | Railway injects it; gunicorn binds it. |
 
-All authored content lives in `src/content.py`. The KJV text is in `src/books/`.
-
+## Run locally
 ```bash
-cd src
-python3 build_bible.py     # regenerates ../index.html? (see note)
-python3 build_chart.py
+pip install -r requirements.txt
+SECRET_KEY=dev python3 app.py      # uses a local SQLite notes.db, serves on :8080
 ```
 
-**Note:** the build scripts write `KJV_Rightly_Divided.html` and
-`KJV_Division_Companion_Chart.html` into the current directory. After building, copy them to
-the repo root as `index.html` and `chart.html`:
-
+## Editing Bible content and redeploying
+All authored content is in `src/content.py` (book intros, front/back matter, per-verse NOTES,
+commentary source links). To rebuild and redeploy:
 ```bash
-cp KJV_Rightly_Divided.html ../index.html
-cp KJV_Division_Companion_Chart.html ../chart.html
-```
-
-Then commit and push — Railway redeploys automatically.
-
-### Where to change things
-- **Per-verse inline notes** — `content.py` → `NOTES` dict, keyed `"Book C:V"`.
-- **Book introductions** — `content.py` → `INTROS`.
-- **Front/back matter** — `content.py` → `HOWTO`, `TIMELINE`, `GLOSSARY`, `PLAN`.
-- **Commentary sources** — `content.py` → `GA_LINKS`, `SG_LINKS`, `LF_*`.
-- **Book order / sections** — `build_bible.py` → `SECTIONS`.
-
----
-
-## Notes on the commentary layer
-
-The three commentary sources (Grace Ambassadors, Les Feldick, Sufficient Grace Bible Fellowship)
-are **linked, not reproduced** — their material is copyright-reserved. Per-verse buttons open a
-site-scoped search for the exact verse reference. The inline per-verse notes are original.
-
-## Credits
-- KJV text: public domain (source dataset: aruljohn/Bible-kjv). Verified 1189 chapters / 31,102 verses.
-
----
-
-## Troubleshooting: "Railway isn't showing my update"
-
-Work through these in order:
-
-1. **Confirm the version actually loaded.** Near the top of the page (under the source chips)
-   there is an **"Updated <date> UTC"** stamp, and a purple **☰ Contents** button floats in the
-   bottom-right corner. If you don't see them, you're looking at an old copy.
-
-2. **The served file must be `index.html` at the repo root.** The Dockerfile serves `index.html`.
-   If you committed the Bible under any other name (e.g. `KJV_Rightly_Divided.html`), Railway is
-   still serving the old `index.html`. Use `src/build.sh`, which writes straight to `index.html`
-   and `chart.html` — no rename step to get wrong.
-
-3. **Hard-refresh the browser** at the Railway URL: Ctrl+Shift+R (Cmd+Shift+R on Mac). Static HTML
-   caches aggressively. The Caddyfile now sends `Cache-Control: no-cache` so this stops happening
-   on future deploys, but a one-time hard refresh clears what's already cached.
-
-4. **Force a clean Railway build.** In the Railway service: open the latest deployment ->
-   **⋮ menu -> Redeploy**. If it still serves stale content, add a trivial change (edit this README)
-   and push, which guarantees a new commit and a fresh build.
-
-5. **Verify what Railway is actually serving** (separates "didn't deploy" from "browser cache"):
-   open the Railway URL in a private/incognito window, or `curl -s https://<your-app>.up.railway.app | grep "Updated"`
-   and check the stamp date.
-
-### Rebuild + redeploy in one go
-```bash
-bash src/build.sh          # writes ../index.html and ../chart.html
+bash src/build.sh                       # writes ../index.html and ../chart.html
 git add -A && git commit -m "update" && git push
 ```
+
+---
+
+## API (all JSON, same-origin cookies)
+- `POST /api/register` `{email, password}` — create account + log in.
+- `POST /api/login` `{email, password}` — log in.
+- `POST /api/logout` — log out.
+- `GET  /api/me` — `{email}` or `{email:null}`.
+- `GET  /api/notes?book=&chapter=` — this user's notes for a chapter: `{chapter_note, verses:{}}`.
+- `PUT  /api/notes` `{book, chapter, verse|null, text}` — create/update (empty text deletes).
+- `DELETE /api/notes` `{book, chapter, verse|null}` — delete.
+
+## Security notes
+Passwords are hashed with PBKDF2 (Werkzeug). Sessions are signed cookies (HttpOnly, SameSite=Lax,
+Secure in production). This is a solid baseline, not a hardened identity system — there is no email
+verification or password-reset flow yet, and a strong `SECRET_KEY` is essential. Consider adding
+rate-limiting and password reset if you open it to the public.
+
+## Troubleshooting deploys
+- Confirm the version loaded via the **"Updated … UTC"** stamp near the top of the page.
+- If notes fail to save with a 401, you're logged out — log in again.
+- If the app boots but can't connect to the DB, check that `DATABASE_URL` is set on the app service.
+- Hard-refresh (Ctrl/Cmd+Shift+R) if the page looks stale; the server sends no-cache for HTML.
+
+## Credits
+KJV text: public domain (aruljohn/Bible-kjv), verified 1189 chapters / 31,102 verses.
+Commentary sources are linked, not reproduced. Inline per-verse notes are original.

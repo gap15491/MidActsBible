@@ -1,4 +1,7 @@
 __pycache__/
 *.pyc
+*.db
+notes.db
 .DS_Store
 *_test.py
+.env

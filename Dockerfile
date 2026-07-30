@@ -1,4 +1,7 @@
-# Serve the reordered KJV as a static site with Caddy.
-FROM caddy:2-alpine
-COPY Caddyfile /etc/caddy/Caddyfile
-COPY index.html chart.html /usr/share/caddy/
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+# Railway injects $PORT; gunicorn binds it. Shell form so $PORT expands.
+CMD gunicorn -b 0.0.0.0:${PORT:-8080} -w 2 --timeout 120 app:app
