@@ -6,6 +6,7 @@ notes API (per-user chapter and verse notes) backed by Postgres (SQLite locally)
 import os
 import re
 import json
+import gzip
 import datetime
 from flask import Flask, request, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
@@ -200,11 +201,22 @@ def delete_note():
 
 # ---------------- Strong's concordance ----------------
 STRONGS_DIR = os.path.join(BASE_DIR, "data")
+
+
+def _load_strongs(name):
+    """Load a data file, preferring a gzipped .gz version if present."""
+    gz = os.path.join(STRONGS_DIR, name + ".gz")
+    plain = os.path.join(STRONGS_DIR, name)
+    if os.path.exists(gz):
+        with gzip.open(gz, "rt", encoding="utf-8") as f:
+            return json.load(f)
+    with open(plain, encoding="utf-8") as f:
+        return json.load(f)
+
+
 try:
-    with open(os.path.join(STRONGS_DIR, "strongs_verses.json"), encoding="utf-8") as _f:
-        STRONGS_VERSES = json.load(_f)
-    with open(os.path.join(STRONGS_DIR, "strongs_lex.json"), encoding="utf-8") as _f:
-        STRONGS_LEX = json.load(_f)
+    STRONGS_VERSES = _load_strongs("strongs_verses.json")
+    STRONGS_LEX = _load_strongs("strongs_lex.json")
 except Exception:
     STRONGS_VERSES, STRONGS_LEX = {}, {}
 
