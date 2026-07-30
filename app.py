@@ -5,6 +5,7 @@ notes API (per-user chapter and verse notes) backed by Postgres (SQLite locally)
 """
 import os
 import re
+import json
 import datetime
 from flask import Flask, request, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
@@ -195,6 +196,44 @@ def delete_note():
         db.session.delete(row)
         db.session.commit()
     return jsonify(ok=True)
+
+
+# ---------------- Strong's concordance ----------------
+STRONGS_DIR = os.path.join(BASE_DIR, "data")
+try:
+    with open(os.path.join(STRONGS_DIR, "strongs_verses.json"), encoding="utf-8") as _f:
+        STRONGS_VERSES = json.load(_f)
+    with open(os.path.join(STRONGS_DIR, "strongs_lex.json"), encoding="utf-8") as _f:
+        STRONGS_LEX = json.load(_f)
+except Exception:
+    STRONGS_VERSES, STRONGS_LEX = {}, {}
+
+TAG_RE = re.compile(r"\[([GH]\d+)\]")
+
+
+@app.get("/api/strongs")
+def strongs():
+    book = (request.args.get("book") or "").strip()
+    try:
+        chapter = int(request.args.get("chapter"))
+        verse = int(request.args.get("verse"))
+    except (TypeError, ValueError):
+        return jsonify(error="book, chapter and verse are required."), 400
+    en = STRONGS_VERSES.get(f"{book}|{chapter}|{verse}")
+    if en is None:
+        return jsonify(ref=f"{book} {chapter}:{verse}", available=False, words=[])
+    words = []
+    for tok in en.split(" "):
+        nums = TAG_RE.findall(tok)
+        if not nums:
+            continue
+        word = TAG_RE.sub("", tok).strip()
+        entries = []
+        for n in nums:
+            e = STRONGS_LEX.get(n)
+            entries.append({"num": n, **e} if e else {"num": n})
+        words.append({"w": word, "entries": entries})
+    return jsonify(ref=f"{book} {chapter}:{verse}", available=True, words=words)
 
 
 # ---------------- static site ----------------

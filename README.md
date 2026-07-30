@@ -76,6 +76,13 @@ git add -A && git commit -m "update" && git push
 
 ---
 
+## Strong's concordance
+Each verse (in verse view) has a **Strong's** button that shows a word-by-word breakdown —
+original Greek/Hebrew, transliteration, part of speech, Strong's definition, and outline of usage.
+No login required (public-domain data). Data lives in `data/strongs_verses.json` (tagged KJV) and
+`data/strongs_lex.json` (lexicon), loaded by the app at startup and served via `GET /api/strongs`.
+Source: kaiserlik/kjv (Strong's-tagged KJV) — public domain.
+
 ## API (all JSON, same-origin cookies)
 - `POST /api/register` `{email, password}` — create account + log in.
 - `POST /api/login` `{email, password}` — log in.
@@ -84,6 +91,7 @@ git add -A && git commit -m "update" && git push
 - `GET  /api/notes?book=&chapter=` — this user's notes for a chapter: `{chapter_note, verses:{}}`.
 - `PUT  /api/notes` `{book, chapter, verse|null, text}` — create/update (empty text deletes).
 - `DELETE /api/notes` `{book, chapter, verse|null}` — delete.
+- `GET  /api/strongs?book=&chapter=&verse=` — word-by-word Strong's breakdown (no login needed).
 
 ## Security notes
 Passwords are hashed with PBKDF2 (Werkzeug). Sessions are signed cookies (HttpOnly, SameSite=Lax,
