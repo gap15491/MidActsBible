@@ -222,6 +222,45 @@ except Exception:
 
 TAG_RE = re.compile(r"\[([GH]\d+)\]")
 
+# Webster's 1828 (public domain), filtered to KJV vocabulary. word -> {h: headword, d: definition}
+try:
+    WEBSTER = _load_strongs("webster1828.json")
+except Exception:
+    WEBSTER = {}
+
+WORD_RE = re.compile(r"[A-Za-z']+")
+
+
+def _norm_word(tok):
+    w = tok.lower()
+    if w.endswith("'s"):
+        w = w[:-2]
+    return w.strip("'")
+
+
+@app.get("/api/define")
+def define():
+    book = (request.args.get("book") or "").strip()
+    try:
+        chapter = int(request.args.get("chapter"))
+        verse = int(request.args.get("verse"))
+    except (TypeError, ValueError):
+        return jsonify(error="book, chapter and verse are required."), 400
+    en = STRONGS_VERSES.get(f"{book}|{chapter}|{verse}")
+    if en is None:
+        return jsonify(ref=f"{book} {chapter}:{verse}", available=False, words=[])
+    text = TAG_RE.sub("", en)
+    words, seen = [], set()
+    for tok in WORD_RE.findall(text):
+        w = _norm_word(tok)
+        if len(w) < 2 or w in seen:
+            continue
+        e = WEBSTER.get(w)
+        if e:
+            seen.add(w)
+            words.append({"w": tok, "h": e["h"], "d": e["d"]})
+    return jsonify(ref=f"{book} {chapter}:{verse}", available=True, words=words)
+
 # Reverse concordance index: Strong's number -> list of verse refs where it occurs.
 # Built once at startup from the tagged text already in memory (no extra data files).
 STRONGS_INDEX = {}
