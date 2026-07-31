@@ -222,6 +222,28 @@ except Exception:
 
 TAG_RE = re.compile(r"\[([GH]\d+)\]")
 
+# Reverse concordance index: Strong's number -> list of verse refs where it occurs.
+# Built once at startup from the tagged text already in memory (no extra data files).
+STRONGS_INDEX = {}
+for _ref, _en in STRONGS_VERSES.items():
+    for _n in set(TAG_RE.findall(_en)):
+        STRONGS_INDEX.setdefault(_n, []).append(_ref)
+
+
+@app.get("/api/occurrences")
+def occurrences():
+    num = (request.args.get("num") or "").strip().upper()
+    refs = STRONGS_INDEX.get(num, [])
+    total = len(refs)
+    limit = 500
+    e = STRONGS_LEX.get(num) or {}
+    items = []
+    for r in refs[:limit]:
+        b, c, v = r.rsplit("|", 2)
+        items.append({"book": b, "chapter": int(c), "verse": int(v), "ref": f"{b} {c}:{v}"})
+    return jsonify(num=num, orig=e.get("o", ""), translit=e.get("t", ""),
+                   total=total, shown=len(items), items=items)
+
 
 @app.get("/api/strongs")
 def strongs():
