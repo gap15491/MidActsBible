@@ -59,6 +59,20 @@ class Note(db.Model):
                                        name="uq_note_scope"),)
 
 
+class Highlight(db.Model):
+    __tablename__ = "highlights"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    book = db.Column(db.String(40), nullable=False)
+    chapter = db.Column(db.Integer, nullable=False)
+    verse = db.Column(db.Integer, nullable=False)
+    data = db.Column(db.Text, nullable=False, default="{}")   # JSON {wordIndex: colorCode}
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow,
+                           onupdate=datetime.datetime.utcnow)
+    __table_args__ = (UniqueConstraint("user_id", "book", "chapter", "verse",
+                                       name="uq_highlight_scope"),)
+
+
 with app.app_context():
     db.create_all()
 
@@ -196,6 +210,60 @@ def delete_note():
     if row:
         db.session.delete(row)
         db.session.commit()
+    return jsonify(ok=True)
+
+
+# ---------------- highlights ----------------
+@app.get("/api/highlights")
+def get_highlights():
+    u = require_login()
+    if not u:
+        return jsonify(error="Not logged in."), 401
+    book = (request.args.get("book") or "").strip()
+    try:
+        chapter = int(request.args.get("chapter"))
+    except (TypeError, ValueError):
+        return jsonify(error="book and chapter are required."), 400
+    rows = Highlight.query.filter_by(user_id=u.id, book=book, chapter=chapter).all()
+    verses = {}
+    for r in rows:
+        try:
+            d = json.loads(r.data)
+        except Exception:
+            d = {}
+        if d:
+            verses[str(r.verse)] = d
+    return jsonify(book=book, chapter=chapter, verses=verses)
+
+
+@app.put("/api/highlights")
+def put_highlight():
+    u = require_login()
+    if not u:
+        return jsonify(error="Not logged in."), 401
+    data = request.get_json(silent=True) or {}
+    book = (data.get("book") or "").strip()
+    try:
+        chapter = int(data.get("chapter"))
+        verse = int(data.get("verse"))
+    except (TypeError, ValueError):
+        return jsonify(error="book, chapter and verse are required."), 400
+    hl = data.get("data") or {}
+    if not isinstance(hl, dict):
+        hl = {}
+    row = Highlight.query.filter_by(user_id=u.id, book=book, chapter=chapter, verse=verse).first()
+    if not hl:
+        if row:
+            db.session.delete(row)
+            db.session.commit()
+        return jsonify(ok=True, deleted=True)
+    payload = json.dumps({str(k): str(v) for k, v in hl.items()})
+    if row:
+        row.data = payload
+    else:
+        row = Highlight(user_id=u.id, book=book, chapter=chapter, verse=verse, data=payload)
+        db.session.add(row)
+    db.session.commit()
     return jsonify(ok=True)
 
 
