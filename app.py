@@ -364,16 +364,27 @@ def strongs():
     if en is None:
         return jsonify(ref=f"{book} {chapter}:{verse}", available=False, words=[])
     words = []
+    in_em = False
     for tok in en.split(" "):
+        supplied = in_em or ("<em>" in tok)
+        if "<em>" in tok:
+            in_em = True
         nums = TAG_RE.findall(tok)
-        if not nums:
+        word = TAG_RE.sub("", tok).replace("<em>", "").replace("</em>", "").strip()
+        if "</em>" in tok:
+            in_em = False
+        if not word or not any(ch.isalpha() for ch in word):
             continue
-        word = TAG_RE.sub("", tok).strip()
         entries = []
         for n in nums:
             e = STRONGS_LEX.get(n)
             entries.append({"num": n, **e} if e else {"num": n})
-        words.append({"w": word, "entries": entries})
+        item = {"w": word, "entries": entries}
+        if not entries:
+            # No Strong's number: either a translator-supplied word (KJV italics)
+            # or an English connective/article with no separate original-language word.
+            item["supplied"] = bool(supplied)
+        words.append(item)
     return jsonify(ref=f"{book} {chapter}:{verse}", available=True, words=words)
 
 
