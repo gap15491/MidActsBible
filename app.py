@@ -73,6 +73,22 @@ class Highlight(db.Model):
                                        name="uq_highlight_scope"),)
 
 
+class Xref(db.Model):
+    __tablename__ = "xrefs"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    book = db.Column(db.String(40), nullable=False)        # source verse
+    chapter = db.Column(db.Integer, nullable=False)
+    verse = db.Column(db.Integer, nullable=False)
+    tbook = db.Column(db.String(40), nullable=False)       # target (referenced) verse
+    tchapter = db.Column(db.Integer, nullable=False)
+    tverse = db.Column(db.Integer, nullable=False)
+    note = db.Column(db.Text, nullable=False, default="")
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    __table_args__ = (UniqueConstraint("user_id", "book", "chapter", "verse",
+                                       "tbook", "tchapter", "tverse", name="uq_xref_scope"),)
+
+
 with app.app_context():
     db.create_all()
 
@@ -264,6 +280,73 @@ def put_highlight():
         row = Highlight(user_id=u.id, book=book, chapter=chapter, verse=verse, data=payload)
         db.session.add(row)
     db.session.commit()
+    return jsonify(ok=True)
+
+
+# ---------------- user cross-references ----------------
+@app.get("/api/xrefs")
+def get_xrefs():
+    u = require_login()
+    if not u:
+        return jsonify(error="Not logged in."), 401
+    book = (request.args.get("book") or "").strip()
+    try:
+        chapter = int(request.args.get("chapter"))
+    except (TypeError, ValueError):
+        return jsonify(error="book and chapter are required."), 400
+    rows = (Xref.query.filter_by(user_id=u.id, book=book, chapter=chapter)
+            .order_by(Xref.verse, Xref.tchapter, Xref.tverse).all())
+    verses = {}
+    for r in rows:
+        verses.setdefault(str(r.verse), []).append({
+            "id": r.id, "tbook": r.tbook, "tchapter": r.tchapter, "tverse": r.tverse,
+            "ref": f"{r.tbook} {r.tchapter}:{r.tverse}", "note": r.note or ""})
+    return jsonify(book=book, chapter=chapter, verses=verses)
+
+
+@app.post("/api/xrefs")
+def add_xref():
+    u = require_login()
+    if not u:
+        return jsonify(error="Not logged in."), 401
+    d = request.get_json(silent=True) or {}
+    book = (d.get("book") or "").strip()
+    tbook = (d.get("tbook") or "").strip()
+    try:
+        chapter = int(d.get("chapter")); verse = int(d.get("verse"))
+        tchapter = int(d.get("tchapter")); tverse = int(d.get("tverse"))
+    except (TypeError, ValueError):
+        return jsonify(error="Source and target book/chapter/verse are required."), 400
+    if not book or not tbook:
+        return jsonify(error="Book is required."), 400
+    note = (d.get("note") or "").strip()[:2000]
+    row = Xref.query.filter_by(user_id=u.id, book=book, chapter=chapter, verse=verse,
+                               tbook=tbook, tchapter=tchapter, tverse=tverse).first()
+    if row:
+        row.note = note
+    else:
+        row = Xref(user_id=u.id, book=book, chapter=chapter, verse=verse,
+                   tbook=tbook, tchapter=tchapter, tverse=tverse, note=note)
+        db.session.add(row)
+    db.session.commit()
+    return jsonify(id=row.id, ref=f"{tbook} {tchapter}:{tverse}", note=note,
+                   tbook=tbook, tchapter=tchapter, tverse=tverse)
+
+
+@app.delete("/api/xrefs")
+def del_xref():
+    u = require_login()
+    if not u:
+        return jsonify(error="Not logged in."), 401
+    d = request.get_json(silent=True) or {}
+    try:
+        xid = int(d.get("id"))
+    except (TypeError, ValueError):
+        return jsonify(error="id is required."), 400
+    row = Xref.query.filter_by(id=xid, user_id=u.id).first()
+    if row:
+        db.session.delete(row)
+        db.session.commit()
     return jsonify(ok=True)
 
 
