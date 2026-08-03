@@ -82,15 +82,41 @@ class Xref(db.Model):
     verse = db.Column(db.Integer, nullable=False)
     tbook = db.Column(db.String(40), nullable=False)       # target (referenced) verse
     tchapter = db.Column(db.Integer, nullable=False)
-    tverse = db.Column(db.Integer, nullable=False)
+    tverse = db.Column(db.Integer, nullable=False)         # start verse
+    tverse_end = db.Column(db.Integer, nullable=True)      # end of range; NULL = single verse
     note = db.Column(db.Text, nullable=False, default="")
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    __table_args__ = (UniqueConstraint("user_id", "book", "chapter", "verse",
-                                       "tbook", "tchapter", "tverse", name="uq_xref_scope"),)
+    __table_args__ = (db.Index("ix_xref_user_scope", "user_id", "book", "chapter"),)
+
+
+def _migrate_xrefs():
+    """Idempotent: add tverse_end and drop the old start-only unique constraint."""
+    try:
+        from sqlalchemy import inspect, text
+        insp = inspect(db.engine)
+        if "xrefs" not in insp.get_table_names():
+            return
+        cols = [c["name"] for c in insp.get_columns("xrefs")]
+        with db.engine.begin() as conn:
+            if "tverse_end" not in cols:
+                conn.execute(text("ALTER TABLE xrefs ADD COLUMN tverse_end INTEGER"))
+            try:
+                conn.execute(text("ALTER TABLE xrefs DROP CONSTRAINT IF EXISTS uq_xref_scope"))
+            except Exception:
+                pass  # SQLite can't drop constraints; harmless in dev
+    except Exception:
+        pass
+
+
+def _xref_ref(tbook, tchapter, tverse, tverse_end):
+    if tverse_end and tverse_end > tverse:
+        return f"{tbook} {tchapter}:{tverse}-{tverse_end}"
+    return f"{tbook} {tchapter}:{tverse}"
 
 
 with app.app_context():
     db.create_all()
+    _migrate_xrefs()
 
 
 # ---------------- helpers ----------------
@@ -300,7 +326,8 @@ def get_xrefs():
     for r in rows:
         verses.setdefault(str(r.verse), []).append({
             "id": r.id, "tbook": r.tbook, "tchapter": r.tchapter, "tverse": r.tverse,
-            "ref": f"{r.tbook} {r.tchapter}:{r.tverse}", "note": r.note or ""})
+            "tverse_end": r.tverse_end,
+            "ref": _xref_ref(r.tbook, r.tchapter, r.tverse, r.tverse_end), "note": r.note or ""})
     return jsonify(book=book, chapter=chapter, verses=verses)
 
 
@@ -319,18 +346,26 @@ def add_xref():
         return jsonify(error="Source and target book/chapter/verse are required."), 400
     if not book or not tbook:
         return jsonify(error="Book is required."), 400
+    tverse_end = d.get("tverse_end")
+    try:
+        tverse_end = int(tverse_end) if tverse_end not in (None, "", 0) else None
+    except (TypeError, ValueError):
+        tverse_end = None
+    if tverse_end is not None and tverse_end <= tverse:
+        tverse_end = None  # not a real range
     note = (d.get("note") or "").strip()[:2000]
     row = Xref.query.filter_by(user_id=u.id, book=book, chapter=chapter, verse=verse,
-                               tbook=tbook, tchapter=tchapter, tverse=tverse).first()
+                               tbook=tbook, tchapter=tchapter, tverse=tverse,
+                               tverse_end=tverse_end).first()
     if row:
         row.note = note
     else:
         row = Xref(user_id=u.id, book=book, chapter=chapter, verse=verse,
-                   tbook=tbook, tchapter=tchapter, tverse=tverse, note=note)
+                   tbook=tbook, tchapter=tchapter, tverse=tverse, tverse_end=tverse_end, note=note)
         db.session.add(row)
     db.session.commit()
-    return jsonify(id=row.id, ref=f"{tbook} {tchapter}:{tverse}", note=note,
-                   tbook=tbook, tchapter=tchapter, tverse=tverse)
+    return jsonify(id=row.id, ref=_xref_ref(tbook, tchapter, tverse, tverse_end), note=note,
+                   tbook=tbook, tchapter=tchapter, tverse=tverse, tverse_end=tverse_end)
 
 
 @app.delete("/api/xrefs")
