@@ -89,6 +89,20 @@ class Xref(db.Model):
     __table_args__ = (db.Index("ix_xref_user_scope", "user_id", "book", "chapter"),)
 
 
+class Topic(db.Model):
+    __tablename__ = "topics"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    key = db.Column(db.String(80), nullable=False)         # curated slug, or a custom key
+    title = db.Column(db.String(160), nullable=False, default="")
+    body = db.Column(db.Text, nullable=False, default="")  # user's teaching notes
+    verses = db.Column(db.Text, nullable=False, default="[]")  # JSON list of "Book C:V" refs
+    is_custom = db.Column(db.Boolean, nullable=False, default=False)
+    updated_at = db.Column(db.DateTime, default=datetime.datetime.utcnow,
+                           onupdate=datetime.datetime.utcnow)
+    __table_args__ = (UniqueConstraint("user_id", "key", name="uq_topic_scope"),)
+
+
 def _migrate_xrefs():
     """Idempotent: add tverse_end and drop the old start-only unique constraint."""
     try:
@@ -379,6 +393,79 @@ def del_xref():
     except (TypeError, ValueError):
         return jsonify(error="id is required."), 400
     row = Xref.query.filter_by(id=xid, user_id=u.id).first()
+    if row:
+        db.session.delete(row)
+        db.session.commit()
+    return jsonify(ok=True)
+
+
+# ---------------- study topics (per-user notes + attached verses) ----------------
+def _topic_row(r):
+    try:
+        vs = json.loads(r.verses)
+        if not isinstance(vs, list):
+            vs = []
+    except Exception:
+        vs = []
+    return {"id": r.id, "key": r.key, "title": r.title or "", "body": r.body or "",
+            "verses": vs, "is_custom": bool(r.is_custom)}
+
+
+@app.get("/api/topics")
+def get_topics():
+    u = require_login()
+    if not u:
+        return jsonify(error="Not logged in."), 401
+    rows = Topic.query.filter_by(user_id=u.id).all()
+    return jsonify(topics=[_topic_row(r) for r in rows])
+
+
+@app.put("/api/topics")
+def put_topic():
+    u = require_login()
+    if not u:
+        return jsonify(error="Not logged in."), 401
+    d = request.get_json(silent=True) or {}
+    key = (d.get("key") or "").strip()[:80]
+    if not key:
+        return jsonify(error="key is required."), 400
+    title = (d.get("title") or "").strip()[:160]
+    body = (d.get("body") or "")
+    if len(body) > 200000:
+        body = body[:200000]
+    verses = d.get("verses")
+    if not isinstance(verses, list):
+        verses = []
+    verses = [str(v)[:60] for v in verses][:200]
+    is_custom = bool(d.get("is_custom"))
+    row = Topic.query.filter_by(user_id=u.id, key=key).first()
+    # A curated topic with nothing saved (no body, no verses, not custom) is deleted.
+    if row and not is_custom and not body.strip() and not verses:
+        db.session.delete(row)
+        db.session.commit()
+        return jsonify(ok=True, deleted=True)
+    if row:
+        row.title = title or row.title
+        row.body = body
+        row.verses = json.dumps(verses)
+        if is_custom:
+            row.is_custom = True
+    else:
+        row = Topic(user_id=u.id, key=key, title=title, body=body,
+                    verses=json.dumps(verses), is_custom=is_custom)
+        db.session.add(row)
+    db.session.commit()
+    return jsonify(_topic_row(row))
+
+
+@app.delete("/api/topics")
+def del_topic():
+    u = require_login()
+    if not u:
+        return jsonify(error="Not logged in."), 401
+    d = request.get_json(silent=True) or {}
+    key = (d.get("key") or "").strip()
+    row = Topic.query.filter_by(user_id=u.id, key=key).first()
     if row:
         db.session.delete(row)
         db.session.commit()
