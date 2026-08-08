@@ -194,8 +194,8 @@ border:1px solid var(--rule);background:#fff;border-radius:10px;cursor:pointer;c
 .tocbtn{cursor:pointer}
 @media print{#readbar{display:none}}
 /* --- Strong's concordance --- */
-.strbtn{font-family:inherit;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;
-color:#7a5a3a;background:#f4ede1;border:1px solid #e0d3c0;border-radius:12px;padding:2px 9px;margin-left:8px;cursor:pointer;vertical-align:middle}
+.strbtn{font-family:inherit;font-size:.72rem;font-weight:700;line-height:1;
+color:#7a5a3a;background:#f4ede1;border:1px solid #e0d3c0;border-radius:50%;width:18px;height:18px;padding:0;margin-left:5px;cursor:pointer;vertical-align:middle;display:inline-flex;align-items:center;justify-content:center;text-transform:lowercase}
 .strbtn:hover{border-color:#b8925f;color:#5a4020}
 .strbtn.on{background:#b8925f;color:#fff;border-color:#b8925f}
 .chap:not(.verse) .strbtn{display:none}
@@ -308,8 +308,8 @@ body.topicsmode #rbPrev,body.topicsmode #rbNext,body.topicsmode #rbChapters,body
 .strongspanel .sw-u{margin-top:2px;font-size:.86rem;color:#6b5a44}
 @media print{.strbtn,.strongspanel{display:none}}
 /* --- Webster's 1828 English definitions --- */
-.defbtn{font-family:inherit;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;
-color:#3f6f6a;background:#e9f1f0;border:1px solid #c7ddd9;border-radius:12px;padding:2px 9px;margin-left:6px;cursor:pointer;vertical-align:middle}
+.defbtn{font-family:inherit;font-size:.72rem;font-weight:700;line-height:1;
+color:#3f6f6a;background:#e9f1f0;border:1px solid #c7ddd9;border-radius:50%;width:18px;height:18px;padding:0;margin-left:4px;cursor:pointer;vertical-align:middle;display:inline-flex;align-items:center;justify-content:center;text-transform:lowercase}
 .defbtn:hover{border-color:#4d8b8f;color:#2f5551}
 .defbtn.on{background:#4d8b8f;color:#fff;border-color:#4d8b8f}
 .chap:not(.verse) .defbtn{display:none}
@@ -438,7 +438,7 @@ footer{text-align:center;padding:60px 22px;color:var(--soft);font-size:.85rem;bo
 <button class="srcchip" type="button" onclick="toggleSrc(this,'rjv')">Richard Jordan (video)</button>
 <button class="srcchip" type="button" onclick="toggleSrc(this,'rw')">Randy White</button>
 </div>
-<div class="buildstamp">Updated 06 Aug 2026 12:00 UTC</div>
+<div class="buildstamp">Updated 08 Aug 2026 12:27 UTC</div>
 </div></header><section id="topicspage">
 <div id="topicslist" class="topicwrap">
 <div class="topic-head"><h2>Study Topics</h2><p class="topsub">Mid-Acts doctrinal topics with your own private teaching notes. Tap one to study it, or create your own.</p></div>
@@ -805,9 +805,9 @@ function wrapWords(vu){if(vu.querySelector('.vt'))return;var v=vu.querySelector(
 function injectStrongsButtons(chapEl){chapEl.querySelectorAll('.vu').forEach(function(vu){
   wrapWords(vu);
   if(vu.querySelector('.strbtn'))return;
-  var b=document.createElement('button');b.className='strbtn';b.type='button';b.textContent="Strong's";
+  var b=document.createElement('button');b.className='strbtn';b.type='button';b.textContent="s";b.title="Strong's";b.setAttribute('aria-label',"Strong's");
   b.onclick=function(){showStrongs(b);};vu.appendChild(b);
-  var db=document.createElement('button');db.className='defbtn';db.type='button';db.textContent='Define';
+  var db=document.createElement('button');db.className='defbtn';db.type='button';db.textContent='d';db.title='Define';db.setAttribute('aria-label','Define');
   db.onclick=function(){showDefine(db);};vu.appendChild(db);});}
 async function showDefine(btn){
   var vu=btn.closest('.vu');if(!vu)return;
