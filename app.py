@@ -472,6 +472,56 @@ def del_topic():
     return jsonify(ok=True)
 
 
+# ---------------- global search over the user's own content ----------------
+def _snippet(text, q, width=110):
+    text = text or ""
+    i = text.lower().find(q.lower())
+    if i < 0:
+        return text[:width] + ("…" if len(text) > width else "")
+    start = max(0, i - 35)
+    end = min(len(text), i + len(q) + 70)
+    s = text[start:end]
+    return ("…" if start > 0 else "") + s + ("…" if end < len(text) else "")
+
+
+@app.get("/api/search")
+def search_all():
+    u = require_login()
+    if not u:
+        return jsonify(error="Not logged in."), 401
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify(results=[], q=q)
+    like = "%" + q.lower() + "%"
+    out = []
+    # notes: verse / chapter / book
+    for n in (Note.query.filter_by(user_id=u.id)
+              .filter(db.func.lower(Note.text).like(like)).limit(60).all()):
+        if n.chapter == 0:
+            label = f"{n.book} · book note"
+            nav = {"type": "book", "book": n.book}
+        elif n.verse is None:
+            label = f"{n.book} {n.chapter} · chapter note"
+            nav = {"type": "chapter", "book": n.book, "chapter": n.chapter}
+        else:
+            label = f"{n.book} {n.chapter}:{n.verse}"
+            nav = {"type": "verse", "book": n.book, "chapter": n.chapter, "verse": n.verse}
+        out.append({"kind": "note", "label": label, "snippet": _snippet(n.text, q), "nav": nav})
+    # topics: title or body
+    for t in (Topic.query.filter_by(user_id=u.id)
+              .filter(db.or_(db.func.lower(Topic.body).like(like),
+                             db.func.lower(Topic.title).like(like))).limit(40).all()):
+        out.append({"kind": "topic", "label": (t.title or t.key) + " · topic",
+                    "snippet": _snippet(t.body, q), "nav": {"type": "topic", "key": t.key}})
+    # personal cross-reference notes
+    for x in (Xref.query.filter_by(user_id=u.id)
+              .filter(db.func.lower(Xref.note).like(like)).limit(40).all()):
+        label = f"{x.book} {x.chapter}:{x.verse} → {_xref_ref(x.tbook, x.tchapter, x.tverse, x.tverse_end)}"
+        out.append({"kind": "xref", "label": label, "snippet": _snippet(x.note, q),
+                    "nav": {"type": "verse", "book": x.book, "chapter": x.chapter, "verse": x.verse}})
+    return jsonify(results=out[:80], q=q)
+
+
 # ---------------- Strong's concordance ----------------
 STRONGS_DIR = os.path.join(BASE_DIR, "data")
 
