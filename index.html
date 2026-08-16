@@ -425,6 +425,22 @@ footer{text-align:center;padding:60px 22px;color:var(--soft);font-size:.85rem;bo
  .totop{display:none}
  header.masthead{padding-top:20px}
 }
+
+/* --- mobile top bar: keep the auth pill from covering the readbar --- */
+@media (max-width:820px){
+  #readbar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
+           scrollbar-width:none;padding-right:58px}
+  #readbar::-webkit-scrollbar{display:none}
+  #readbar>*{flex:0 0 auto}
+  #readbar .rbsearch{max-width:170px}
+  #authbar{top:9px;right:10px}
+  #authbar.signedin #authinfo{max-width:42px;overflow:hidden;white-space:nowrap;
+           padding:6px 10px;transition:max-width .18s ease}
+  #authbar.signedin.open #authinfo{max-width:min(86vw,420px)}
+  #authbar.signedin #authinfo::before{content:"\1F464";display:inline-block;width:20px;text-align:center}
+  #authbar.signedin:not(.open) .whoami,
+  #authbar.signedin:not(.open) .linkbtn{visibility:hidden}
+}
 </style></head><body class="show-ga show-lf show-sg show-bbs show-rjv show-rw home">
 <a class="floatcontents" href="#/" onclick="showHome();return false;" title="Back to the book list">&#9776;&nbsp;Books</a>
 <div id="readbar"><button class="rb rbback" id="rbBack" type="button" onclick="goBack()" style="display:none"></button><button class="rb rbnav" id="rbPrev" type="button" onclick="prevChapter()" title="Previous chapter">&#8249; Prev</button><button class="rb rbnav" id="rbNext" type="button" onclick="nextChapter()" title="Next chapter">Next &#8250;</button><button class="rb" type="button" onclick="showHome()">&#9776; Books</button><button class="rb" id="rbTopics" type="button" onclick="showTopics()">&#9782; Topics</button><button class="rb" id="rbChapters" type="button" onclick="showChapters()">Chapters</button><button class="rb" id="rbBookNote" type="button" onclick="toggleBookNote()">&#9998; Book note</button><span class="rbcrumb" id="rbCrumb"></span><input id="rbsearch" class="rbsearch" type="search" placeholder="Search my notes…" autocomplete="off" oninput="doSearchInput(this)"></div>
@@ -432,7 +448,7 @@ footer{text-align:center;padding:60px 22px;color:var(--soft);font-size:.85rem;bo
 <div id="occmodal" class="hidden" onclick="if(event.target===this)closeOcc()"><div class="modalbox occbox"><button class="modalx" type="button" onclick="closeOcc()">&times;</button><h3 id="occtitle">References</h3><div id="occbody"></div></div></div>
 <div id="booknotemodal" class="hidden" onclick="if(event.target===this)closeBookNote()"><div class="modalbox booknotebox"><button class="modalx" type="button" onclick="closeBookNote()">&times;</button><h3 id="bnTitle">Book note</h3><div class="mynote" id="bnBox" data-kind="book" data-book="" data-chap="0" data-verse=""></div></div></div>
 <div id="xrefmodal" class="hidden" onclick="if(event.target===this)closeXref()"><div class="modalbox xrefbox"><button class="modalx" type="button" onclick="closeXref()">&times;</button><h3>Add cross-reference</h3><div class="xr-src" id="xrSrc"></div><div class="xr-sel"><label class="xr-book">Book<select id="xrBook" onchange="xrBookChange()"></select></label></div><div class="xr-sel"><label>Chapter<select id="xrChap" onchange="xrChapChange()"></select></label><label>Verse<select id="xrVerse" onchange="xrStartChange()"></select></label><label>Through<select id="xrVerse2" onchange="xrPreview()"></select></label></div><div class="xr-prev empty" id="xrPrev">Select a passage…</div><input id="xrNote" type="text" placeholder="Optional note (why they connect)" maxlength="2000"><div id="xrErr" class="autherr"></div><button id="xrSave" type="button" onclick="saveXref()">Add cross-reference</button></div></div>
-<div id="authbar"><span id="authinfo"></span></div>
+<div id="authbar" onclick="if(!event.target.closest('button,a'))this.classList.toggle('open')"><span id="authinfo"></span></div>
 <div id="hlbar" class="hidden"><button class="hlsw hl-y" type="button" data-c="y" title="Yellow"></button><button class="hlsw hl-g" type="button" data-c="g" title="Green"></button><button class="hlsw hl-b" type="button" data-c="b" title="Blue"></button><button class="hlsw hl-p" type="button" data-c="p" title="Pink"></button><button class="hlx" type="button" title="Remove highlight">Clear</button></div>
 <div id="authmodal" class="hidden">
   <div class="modalbox">
@@ -512,8 +528,9 @@ function reloadOpenExtras(){if(typeof refreshNotesBox==='function')refreshNotesB
   var ch=document.querySelector('.chap.active');if(!ch)return;if(ME&&CURBOOK&&CURCHAP!=null){loadHighlights(CURBOOK,CURCHAP);loadXrefs(CURBOOK,CURCHAP);}else{ch.querySelectorAll('.w').forEach(function(w){w.classList.remove('hl-y','hl-g','hl-b','hl-p');});ch.querySelectorAll('.v.has-uxref').forEach(function(v){v.classList.remove('has-uxref');});XC={};rebuildPanels();}}
 function renderAuth(){
   var el=document.getElementById('authinfo'); if(!el)return;
-  if(ME){el.innerHTML='<span class="whoami">'+esc(ME)+'</span> &middot; <button class="linkbtn" onclick="doLogout()">Log out</button>';}
-  else{el.innerHTML='<button class="linkbtn" onclick="openAuth()">Log in / Register</button>';}
+  var bar=document.getElementById('authbar');
+  if(ME){el.innerHTML='<span class="whoami">'+esc(ME)+'</span> &middot; <button class="linkbtn" onclick="doLogout()">Log out</button>';if(bar)bar.classList.add('signedin');}
+  else{el.innerHTML='<button class="linkbtn" onclick="openAuth()">Log in / Register</button>';if(bar)bar.classList.remove('signedin','open');}
 }
 var authMode='login';
 function openAuth(){document.getElementById('authmodal').classList.remove('hidden');setAuthMode('login');document.getElementById('authemail').focus();}
