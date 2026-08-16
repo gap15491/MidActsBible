@@ -294,8 +294,10 @@ body.topicsmode #rbPrev,body.topicsmode #rbNext,body.topicsmode #rbChapters,body
 #readbar{flex-wrap:wrap}
 .rbsearch{font-family:inherit;font-size:.85rem;padding:5px 11px;border:1px solid var(--rule);border-radius:16px;background:#fff;color:var(--ink);min-width:130px;-webkit-appearance:none}
 .rbsearch:focus{outline:none;border-color:var(--s3)}
-#readbar .rbsearch{max-width:220px}
-.homesearchwrap{margin:16px auto 0;max-width:380px}
+#readbar .rbsearch{max-width:190px}
+.rbbible{background:#f6f1f8}
+.rbbible:focus{border-color:var(--s2)}
+.homesearchwrap{display:flex;flex-direction:column;gap:8px;margin:16px auto 0;max-width:380px}
 .homesearchwrap .rbsearch{width:100%;font-size:.95rem;padding:9px 14px}
 #searchdrop{position:fixed;z-index:260;width:380px;max-width:94vw;max-height:62vh;overflow-y:auto;background:var(--paper);border:1px solid var(--rule);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.24)}
 #searchdrop.hidden{display:none}
@@ -425,30 +427,14 @@ footer{text-align:center;padding:60px 22px;color:var(--soft);font-size:.85rem;bo
  .totop{display:none}
  header.masthead{padding-top:20px}
 }
-
-/* --- mobile top bar: keep the auth pill from covering the readbar --- */
-@media (max-width:820px){
-  #readbar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;
-           scrollbar-width:none;padding-right:58px}
-  #readbar::-webkit-scrollbar{display:none}
-  #readbar>*{flex:0 0 auto}
-  #readbar .rbsearch{max-width:170px}
-  #authbar{top:9px;right:10px}
-  #authbar.signedin #authinfo{max-width:42px;overflow:hidden;white-space:nowrap;
-           padding:6px 10px;transition:max-width .18s ease}
-  #authbar.signedin.open #authinfo{max-width:min(86vw,420px)}
-  #authbar.signedin #authinfo::before{content:"\1F464";display:inline-block;width:20px;text-align:center}
-  #authbar.signedin:not(.open) .whoami,
-  #authbar.signedin:not(.open) .linkbtn{visibility:hidden}
-}
 </style></head><body class="show-ga show-lf show-sg show-bbs show-rjv show-rw home">
 <a class="floatcontents" href="#/" onclick="showHome();return false;" title="Back to the book list">&#9776;&nbsp;Books</a>
-<div id="readbar"><button class="rb rbback" id="rbBack" type="button" onclick="goBack()" style="display:none"></button><button class="rb rbnav" id="rbPrev" type="button" onclick="prevChapter()" title="Previous chapter">&#8249; Prev</button><button class="rb rbnav" id="rbNext" type="button" onclick="nextChapter()" title="Next chapter">Next &#8250;</button><button class="rb" type="button" onclick="showHome()">&#9776; Books</button><button class="rb" id="rbTopics" type="button" onclick="showTopics()">&#9782; Topics</button><button class="rb" id="rbChapters" type="button" onclick="showChapters()">Chapters</button><button class="rb" id="rbBookNote" type="button" onclick="toggleBookNote()">&#9998; Book note</button><span class="rbcrumb" id="rbCrumb"></span><input id="rbsearch" class="rbsearch" type="search" placeholder="Search my notes…" autocomplete="off" oninput="doSearchInput(this)"></div>
+<div id="readbar"><button class="rb rbback" id="rbBack" type="button" onclick="goBack()" style="display:none"></button><button class="rb rbnav" id="rbPrev" type="button" onclick="prevChapter()" title="Previous chapter">&#8249; Prev</button><button class="rb rbnav" id="rbNext" type="button" onclick="nextChapter()" title="Next chapter">Next &#8250;</button><button class="rb" type="button" onclick="showHome()">&#9776; Books</button><button class="rb" id="rbTopics" type="button" onclick="showTopics()">&#9782; Topics</button><button class="rb" id="rbChapters" type="button" onclick="showChapters()">Chapters</button><button class="rb" id="rbBookNote" type="button" onclick="toggleBookNote()">&#9998; Book note</button><span class="rbcrumb" id="rbCrumb"></span><input id="rbsearch" class="rbsearch" type="search" placeholder="Search my notes…" autocomplete="off" oninput="doSearchInput(this)"><input id="rbbible" class="rbsearch rbbible" type="search" placeholder="Search the Bible…" autocomplete="off" oninput="doBibleInput(this)"></div>
 <div id="searchdrop" class="hidden"></div>
 <div id="occmodal" class="hidden" onclick="if(event.target===this)closeOcc()"><div class="modalbox occbox"><button class="modalx" type="button" onclick="closeOcc()">&times;</button><h3 id="occtitle">References</h3><div id="occbody"></div></div></div>
 <div id="booknotemodal" class="hidden" onclick="if(event.target===this)closeBookNote()"><div class="modalbox booknotebox"><button class="modalx" type="button" onclick="closeBookNote()">&times;</button><h3 id="bnTitle">Book note</h3><div class="mynote" id="bnBox" data-kind="book" data-book="" data-chap="0" data-verse=""></div></div></div>
 <div id="xrefmodal" class="hidden" onclick="if(event.target===this)closeXref()"><div class="modalbox xrefbox"><button class="modalx" type="button" onclick="closeXref()">&times;</button><h3>Add cross-reference</h3><div class="xr-src" id="xrSrc"></div><div class="xr-sel"><label class="xr-book">Book<select id="xrBook" onchange="xrBookChange()"></select></label></div><div class="xr-sel"><label>Chapter<select id="xrChap" onchange="xrChapChange()"></select></label><label>Verse<select id="xrVerse" onchange="xrStartChange()"></select></label><label>Through<select id="xrVerse2" onchange="xrPreview()"></select></label></div><div class="xr-prev empty" id="xrPrev">Select a passage…</div><input id="xrNote" type="text" placeholder="Optional note (why they connect)" maxlength="2000"><div id="xrErr" class="autherr"></div><button id="xrSave" type="button" onclick="saveXref()">Add cross-reference</button></div></div>
-<div id="authbar" onclick="if(!event.target.closest('button,a'))this.classList.toggle('open')"><span id="authinfo"></span></div>
+<div id="authbar"><span id="authinfo"></span></div>
 <div id="hlbar" class="hidden"><button class="hlsw hl-y" type="button" data-c="y" title="Yellow"></button><button class="hlsw hl-g" type="button" data-c="g" title="Green"></button><button class="hlsw hl-b" type="button" data-c="b" title="Blue"></button><button class="hlsw hl-p" type="button" data-c="p" title="Pink"></button><button class="hlx" type="button" title="Remove highlight">Clear</button></div>
 <div id="authmodal" class="hidden">
   <div class="modalbox">
@@ -473,8 +459,8 @@ footer{text-align:center;padding:60px 22px;color:var(--soft);font-size:.85rem;bo
 <button class="srcchip" type="button" onclick="toggleSrc(this,'rjv')">Richard Jordan (video)</button>
 <button class="srcchip" type="button" onclick="toggleSrc(this,'rw')">Randy White</button>
 </div>
-<div class="homesearchwrap"><input id="homesearch" class="rbsearch" type="search" placeholder="Search my notes…" autocomplete="off" oninput="doSearchInput(this)"></div>
-<div class="buildstamp">Updated 13 Aug 2026 01:20 UTC</div>
+<div class="homesearchwrap"><input id="homesearch" class="rbsearch" type="search" placeholder="Search my notes…" autocomplete="off" oninput="doSearchInput(this)"><input id="homebible" class="rbsearch rbbible" type="search" placeholder="Search the Bible…" autocomplete="off" oninput="doBibleInput(this)"></div>
+<div class="buildstamp">Updated 15 Aug 2026 15:00 UTC</div>
 </div></header><section id="topicspage">
 <div id="topicslist" class="topicwrap">
 <div class="topic-head"><h2>Study Topics</h2><p class="topsub">Mid-Acts doctrinal topics with your own private teaching notes. Tap one to study it, or create your own.</p></div>
@@ -528,9 +514,8 @@ function reloadOpenExtras(){if(typeof refreshNotesBox==='function')refreshNotesB
   var ch=document.querySelector('.chap.active');if(!ch)return;if(ME&&CURBOOK&&CURCHAP!=null){loadHighlights(CURBOOK,CURCHAP);loadXrefs(CURBOOK,CURCHAP);}else{ch.querySelectorAll('.w').forEach(function(w){w.classList.remove('hl-y','hl-g','hl-b','hl-p');});ch.querySelectorAll('.v.has-uxref').forEach(function(v){v.classList.remove('has-uxref');});XC={};rebuildPanels();}}
 function renderAuth(){
   var el=document.getElementById('authinfo'); if(!el)return;
-  var bar=document.getElementById('authbar');
-  if(ME){el.innerHTML='<span class="whoami">'+esc(ME)+'</span> &middot; <button class="linkbtn" onclick="doLogout()">Log out</button>';if(bar)bar.classList.add('signedin');}
-  else{el.innerHTML='<button class="linkbtn" onclick="openAuth()">Log in / Register</button>';if(bar)bar.classList.remove('signedin','open');}
+  if(ME){el.innerHTML='<span class="whoami">'+esc(ME)+'</span> &middot; <button class="linkbtn" onclick="doLogout()">Log out</button>';}
+  else{el.innerHTML='<button class="linkbtn" onclick="openAuth()">Log in / Register</button>';}
 }
 var authMode='login';
 function openAuth(){document.getElementById('authmodal').classList.remove('hidden');setAuthMode('login');document.getElementById('authemail').focus();}
@@ -759,6 +744,13 @@ function runSearch(q,el){var drop=document.getElementById('searchdrop');if(!ME){
 function renderSearch(d,el){var drop=document.getElementById('searchdrop');var rs=d.results||[];var h='<div class="sd-head">'+(rs.length?(rs.length+' result'+(rs.length>1?'s':'')):'No matches')+' for “'+esc(d.q)+'”</div>';rs.forEach(function(r){h+='<button class="sd-item" type="button" data-nav="'+escq(JSON.stringify(r.nav))+'"><span class="sd-label">'+esc(r.label)+'</span><span class="sd-snip">'+esc(r.snippet)+'</span></button>';});drop.innerHTML=h;positionDrop(el);drop.classList.remove('hidden');}
 function closeSearchDrop(){var drop=document.getElementById('searchdrop');if(drop)drop.classList.add('hidden');}
 function navigateSearch(nav){if(!nav)return;if(nav.type==='verse'){gotoVerse(nav.book,String(nav.chapter),nav.verse);}else if(nav.type==='chapter'){openChapter(nav.book,String(nav.chapter));}else if(nav.type==='book'){openBook(nav.book);}else if(nav.type==='topic'){openTopic(nav.key);}}
+/* --- Bible text search (client-side over the KJV text already on the page) --- */
+var BIBLE=null,BSRCHT=null;
+function buildBibleIndex(){BIBLE=[];document.querySelectorAll('article.book').forEach(function(a){var book=a.getAttribute('data-book');a.querySelectorAll('.chap').forEach(function(ch){var c=ch.getAttribute('data-chap');ch.querySelectorAll('.vu').forEach(function(vu){var vs=vu.querySelector('.v');var v=vs?vs.textContent.trim():'';var t='';vu.childNodes.forEach(function(n){if(n===vs)return;if(n.nodeType===3){t+=n.nodeValue;}else if(n.nodeType===1){var cl=n.classList;if(cl&&(cl.contains('strbtn')||cl.contains('defbtn')||cl.contains('vpanel')||cl.contains('strongspanel')||cl.contains('mynote')))return;t+=n.textContent;}});t=t.replace(/\s+/g,' ').trim();BIBLE.push({b:book,c:c,v:v,t:t,l:t.toLowerCase()});});});});}
+function bibleSearch(q){if(!BIBLE)buildBibleIndex();var ql=q.toLowerCase();var out=[];for(var i=0;i<BIBLE.length;i++){if(BIBLE[i].l.indexOf(ql)>=0){out.push(BIBLE[i]);if(out.length>=60)break;}}return out;}
+function bsnip(text,q){var i=text.toLowerCase().indexOf(q.toLowerCase());if(i<0)return text.slice(0,120);var s=Math.max(0,i-35),e=Math.min(text.length,i+q.length+75);return (s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');}
+function doBibleInput(el){var q=el.value||'';var drop=document.getElementById('searchdrop');if(BSRCHT)clearTimeout(BSRCHT);if(q.trim().length<3){drop.classList.add('hidden');drop.innerHTML='';return;}BSRCHT=setTimeout(function(){renderBibleSearch(bibleSearch(q.trim()),q.trim(),el);},220);}
+function renderBibleSearch(list,q,el){var drop=document.getElementById('searchdrop');var h='<div class="sd-head">'+(list.length?(list.length+(list.length>=60?'+':'')+' verse'+(list.length===1?'':'s')):'No verses')+' matching “'+esc(q)+'”</div>';list.forEach(function(r){var ref=r.b+' '+r.c+':'+r.v;h+='<button class="sd-item" type="button" data-nav="'+escq(JSON.stringify({type:'verse',book:r.b,chapter:parseInt(r.c),verse:parseInt(r.v)}))+'"><span class="sd-label">'+esc(ref)+'</span><span class="sd-snip">'+esc(bsnip(r.t,q))+'</span></button>';});drop.innerHTML=h;positionDrop(el);drop.classList.remove('hidden');}
 document.addEventListener('click',function(e){var it=e.target&&e.target.closest?e.target.closest('.sd-item'):null;if(it){var nav;try{nav=JSON.parse(it.getAttribute('data-nav'));}catch(err){nav=null;}closeSearchDrop();var rb=document.getElementById('rbsearch'),hs=document.getElementById('homesearch');if(rb)rb.value='';if(hs)hs.value='';navigateSearch(nav);return;}if(e.target&&e.target.closest&&(e.target.closest('#searchdrop')||e.target.closest('.rbsearch')))return;closeSearchDrop();});
 /* lazily flag which chapters hold notes as they scroll into view (logged-in only) */
 var noteObserver=new IntersectionObserver(function(entries){
@@ -918,13 +910,40 @@ async function showStrongs(btn){
 function toggleBookNote(){
   if(!ME){openAuth();return;}
   if(!CURBOOK)return;
-  var m=document.getElementById('booknotemodal');
-  if(!m.classList.contains('hidden')){closeBookNote();return;}
-  var box=document.getElementById('bnBox');box.setAttribute('data-book',CURBOOK);
-  document.getElementById('bnTitle').textContent=CURBOOK+' — overview note';
-  renderNoteBox(box);loadNoteBox(box);m.classList.remove('hidden');
+  popOutBookNote(CURBOOK);
 }
-function closeBookNote(){document.getElementById('booknotemodal').classList.add('hidden');}
+function popOutBookNote(book){
+  var w=window.open('','booknote_'+book.replace(/[^A-Za-z0-9]/g,''),'width=720,height=800,resizable=yes,scrollbars=yes');
+  if(!w){alert('Please allow pop-ups for this site to open your book note in a window.');return;}
+  var refTxt=esc(book);
+  var pre=(NC[book+'|0']&&NC[book+'|0'].loaded)?(NC[book+'|0'].chapter_note||''):'';
+  var css='*{box-sizing:border-box}body{margin:0;font-family:Georgia,"Times New Roman",serif;background:#f3f8f5;color:#2b2622}'+
+    '.hd{padding:12px 14px;background:#5a4b7a;color:#fff;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;z-index:5}'+
+    '.hd span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'+
+    '.cl{flex:none;font:700 15px system-ui,-apple-system,sans-serif;color:#4a3d68;background:#fff;border:none;border-radius:18px;padding:9px 18px;cursor:pointer;-webkit-appearance:none;text-transform:none;letter-spacing:0}'+
+    '.cl:active{opacity:.75}'+
+    '.wrap{padding:14px 16px}.st{font:12px system-ui,sans-serif;color:#6a5a8f;padding:4px 0 10px}'+
+    'textarea{width:100%;height:calc(100vh - 128px);min-height:240px;resize:none;font:17px/1.7 Georgia,serif;padding:14px 16px;border:1px solid #d6cfe6;border-radius:8px;background:#fff;color:#2b2622}'+
+    'textarea:focus{outline:none;border-color:#5a4b7a}';
+  var bodyHtml='<div class="hd"><span>&#9998; Book note &middot; '+refTxt+'</span><button class="cl" onclick="closeWin()">&#10005; Done</button></div>'+
+    '<div class="wrap"><div class="st" id="st">Loading…</div><textarea id="t" placeholder="Write your overview notes for this whole book… (saved automatically)"></textarea></div>';
+  var js='(function(){var O='+JSON.stringify(location.origin)+',B='+JSON.stringify(book)+',T=null,ready=false;'+
+    'var ta=document.getElementById("t"),st=document.getElementById("st");ta.value='+JSON.stringify(pre)+';'+
+    'function s(m){st.textContent=m;}'+
+    'fetch(O+"/api/notes?book="+encodeURIComponent(B)+"&chapter=0",{credentials:"same-origin"}).then(function(r){return r.json();}).then(function(j){if(document.activeElement!==ta)ta.value=j.chapter_note||"";ready=true;s(ta.value.trim()?"Saved":"");}).catch(function(){ready=true;s("");});'+
+    'ta.addEventListener("input",function(){s("Saving…");if(T)clearTimeout(T);T=setTimeout(save,600);});'+
+    'function save(){return fetch(O+"/api/notes",{method:"PUT",headers:{"Content-Type":"application/json"},credentials:"same-origin",keepalive:true,body:JSON.stringify({book:B,chapter:0,verse:null,text:ta.value})}).then(function(r){s(ta.value.trim()?"Saved":"Cleared");try{if(window.opener&&window.opener.syncBookNoteFromPopup)window.opener.syncBookNoteFromPopup(B,ta.value);}catch(e){}}).catch(function(){s("Could not save");});}'+
+    'window.closeWin=function(){if(T)clearTimeout(T);save();try{window.close();}catch(e){}setTimeout(function(){s("Saved. You can close this tab to return.");},300);};'+
+    'window.addEventListener("pagehide",function(){if(T){clearTimeout(T);save();}});'+
+    'ta.focus();})();';
+  var doc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Book note · '+refTxt+'</title><style>'+css+'</style></head><body>'+bodyHtml+'<'+'script>'+js+'<'+'/script></body></html>';
+  w.document.open();w.document.write(doc);w.document.close();w.focus();
+}
+function syncBookNoteFromPopup(book,text){
+  var k=book+'|0';NC[k]=NC[k]||{loaded:true,chapter_note:null,verses:{}};NC[k].chapter_note=(text&&text.trim())?text:null;
+  if(window.refreshNotesBox)refreshNotesBox();
+}
+function closeBookNote(){var m=document.getElementById('booknotemodal');if(m)m.classList.add('hidden');}
 function nextChapter(){if(!CURBOOK||CURCHAP==null)return;var c=parseInt(CURCHAP),n=chapCount(CURBOOK);
   if(c<n){openChapter(CURBOOK,String(c+1));return;}
   var i=BOOKS_SEQ.indexOf(CURBOOK);if(i>=0&&i<BOOKS_SEQ.length-1)openChapter(BOOKS_SEQ[i+1],'1');}
