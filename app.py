@@ -400,6 +400,23 @@ def del_xref():
 
 
 # ---------------- study topics (per-user notes + attached verses) ----------------
+def _norm_topic_verses(verses):
+    """A key verse is either "Book C:V" (no comment) or {"ref": ..., "note": ...}."""
+    out = []
+    for v in verses[:200]:
+        if isinstance(v, dict):
+            ref = str(v.get("ref") or "")[:60].strip()
+            if not ref:
+                continue
+            note = str(v.get("note") or "")[:4000]
+            out.append({"ref": ref, "note": note} if note.strip() else ref)
+        else:
+            ref = str(v)[:60].strip()
+            if ref:
+                out.append(ref)
+    return out
+
+
 def _topic_row(r):
     try:
         vs = json.loads(r.verses)
@@ -436,7 +453,7 @@ def put_topic():
     verses = d.get("verses")
     if not isinstance(verses, list):
         verses = []
-    verses = [str(v)[:60] for v in verses][:200]
+    verses = _norm_topic_verses(verses)
     is_custom = bool(d.get("is_custom"))
     row = Topic.query.filter_by(user_id=u.id, key=key).first()
     # A curated topic with nothing saved (no body, no verses, not custom) is deleted.
@@ -513,6 +530,25 @@ def search_all():
                              db.func.lower(Topic.title).like(like))).limit(40).all()):
         out.append({"kind": "topic", "label": (t.title or t.key) + " · topic",
                     "snippet": _snippet(t.body, q), "nav": {"type": "topic", "key": t.key}})
+    # comments attached to topic key verses
+    for t in (Topic.query.filter_by(user_id=u.id)
+              .filter(db.func.lower(Topic.verses).like(like)).limit(40).all()):
+        try:
+            vs = json.loads(t.verses)
+        except Exception:
+            vs = []
+        if not isinstance(vs, list):
+            vs = []
+        for v in vs:
+            if not isinstance(v, dict):
+                continue
+            note = v.get("note") or ""
+            if q.lower() not in note.lower():
+                continue
+            out.append({"kind": "topic",
+                        "label": (t.title or t.key) + " \u00b7 " + str(v.get("ref") or ""),
+                        "snippet": _snippet(note, q),
+                        "nav": {"type": "topic", "key": t.key}})
     # personal cross-reference notes
     for x in (Xref.query.filter_by(user_id=u.id)
               .filter(db.func.lower(Xref.note).like(like)).limit(40).all()):
