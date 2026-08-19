@@ -1,0 +1,2578 @@
+<!DOCTYPE html>
+<!-- diamonds test — spreadsheet mimic v1 -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diamonds Tracker</title>
+<link rel="manifest" href="/manifest.json">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+:root{--bg:#F8F9FA;--surface:#fff;--surface2:#F3F4F6;--border:#E5E7EB;--border2:#D1D5DB;--accent:#2563EB;--accent-light:#EFF6FF;
+--green:#16A34A;--green-light:#F0FDF4;--red:#DC2626;--red-light:#FEF2F2;--yellow:#D97706;--yellow-light:#FFFBEB;--purple:#7C3AED;--green-border:#BBF7D0;--red-border:#FECACA;--yellow-border:#FDE68A;
+--text:#111827;--text2:#374151;--muted:#6B7280;--muted2:#9CA3AF;--surface3:#FAFAFA;--mono:'JetBrains Mono',monospace}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:13px;min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;height:48px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+header h1{font-size:15px;font-weight:700;white-space:nowrap}
+.hdr-btn{font-size:11px;font-weight:500;padding:5px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;text-decoration:none;white-space:nowrap}
+.hdr-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.ml{margin-left:auto}
+.page{max-width:none;margin:0;padding:8px 12px}
+.note{font-size:11px;color:var(--muted);margin-bottom:14px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.acctpnl{margin-left:18px;display:flex;align-items:center;gap:16px;padding:2px 6px 8px}
+.apnl-item{display:flex;flex-direction:column;line-height:1.15;text-align:right}
+.apnl-item label{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:800}
+.apnl-item b{font-family:var(--mono);font-size:15px;font-weight:800}
+.apnl-item b.up{color:var(--green)}.apnl-item b.dn{color:var(--red)}.apnl-item b.neu{color:var(--muted2)}
+.apnl-sub{font-size:9px;color:var(--muted2);font-weight:600}
+.apnl-refresh{border:1px solid var(--border2);background:var(--surface);color:var(--accent);border-radius:7px;padding:6px 10px;font-size:13px;font-weight:700;cursor:pointer}
+.apnl-refresh:hover{border-color:var(--accent);background:var(--accent-light)}
+.tab-btn{padding:9px 16px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-pane{display:none}.tab-pane.active{display:block}
+.subtabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.acctbar{display:flex;align-items:center;gap:10px;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:9px;padding:9px 14px;margin-bottom:14px}
+.acctbar label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--purple);font-weight:700}
+.acctbar select{font-size:14px;font-weight:700;color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;background:#fff;cursor:pointer;outline:none}
+.acctbar select:focus{border-color:var(--accent)}
+.acctbar .acct-hint{font-size:11px;color:var(--muted);margin-left:14px}
+.btn-pull{background:#ECFDF5;color:var(--green);border:1px solid var(--green-border);border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
+.btn-pull:hover{background:#D1FAE5}
+.btn-pull:disabled{opacity:.5;cursor:default}
+.moneycell{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--green);cursor:pointer;padding:3px 9px;border-radius:5px;display:inline-block;min-width:90px}
+.moneycell:hover{background:#F0FDF4;outline:1px solid var(--green-border)}
+.moneycell:not(.filled){color:var(--muted);font-weight:400;font-style:italic;font-family:inherit}
+.moneyedit{font-weight:700;color:var(--green)}
+.btn-import{background:#EFF6FF;color:#2563EB;border:1px solid #DBEAFE;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
+.btn-import:hover{background:#DBEAFE}
+.btn-clear{background:transparent;color:var(--muted);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-clear:hover{background:var(--red-light);color:var(--red);border-color:var(--red-border)}
+.modal-bg{position:fixed;inset:0;background:rgba(15,15,25,.55);z-index:9998;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:32px 16px}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border-radius:12px;max-width:1040px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+.modal-hd{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--surface3)}
+.modal-hd h3{font-size:15px;font-weight:700}
+.modal-bd{padding:12px 18px;max-height:62vh;overflow:auto}
+.modal-ft{display:flex;gap:10px;align-items:center;padding:14px 20px;border-top:1px solid var(--border)}
+table.stage{width:100%;border-collapse:collapse;font-size:12px}
+table.stage th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--border)}
+table.stage td{padding:5px 8px;border-bottom:1px solid var(--border);font-family:var(--mono)}
+table.stage select{font-family:'Inter',sans-serif;font-size:12px;font-weight:600;padding:4px 6px;border:1px solid var(--border2);border-radius:5px;background:#fff}
+table.stage tr.dup{opacity:.45}
+.stage-badge{font-size:9px;padding:1px 6px;border-radius:10px;background:var(--surface2);color:var(--muted);font-weight:700}
+.stage-split{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--accent);background:var(--accent-light);border:1px solid var(--border2);border-radius:5px;padding:3px 8px;cursor:pointer}
+.stage-split:hover{background:#EEF2FF;border-color:var(--accent)}
+.stage-sec{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.stage-sec:first-child{margin-top:0}
+.stage-sec.closed{color:var(--green)}
+.subtabs .tab-btn{padding:7px 18px;font-size:12px}
+.gridbox{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px}
+.grid-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--surface3)}
+.grid-hdr h4{font-size:13px;font-weight:700}
+.btn-primary{background:var(--accent);color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer}
+.btn-red{background:var(--red-light);color:var(--red);border:1px solid #FECACA;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer}
+.btn-roll{background:var(--yellow-light);color:var(--yellow);border:1px solid var(--yellow-border);padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer}
+.btn-close2{background:var(--green-light);color:var(--green);border:1px solid var(--green-border);padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer}
+.roll-only{display:none}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.grid{border-collapse:collapse;font-size:11px;width:100%}
+table.grid th{padding:4px 4px;text-align:left;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.2px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
+table.grid td{padding:0;border:1px solid var(--border);white-space:nowrap}
+tr.rowclosed{background:var(--surface2)}
+tr.rowclosed .ginp,tr.rowclosed .gsel{color:var(--muted)}
+.grid tr.rowclosed{display:none}
+.grid.showclosed tr.rowclosed{display:table-row}
+.closedtoggle{margin-left:auto;background:transparent;border:1px solid var(--border2);color:var(--muted);border-radius:6px;padding:4px 11px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
+.closedtoggle:hover{border-color:var(--accent);color:var(--accent)}
+.legtotals{display:flex;gap:28px;padding:8px 14px;background:#FBFAFF;border-bottom:1px solid var(--border)}
+.legtotals span{display:flex;flex-direction:column;gap:1px}
+.legtotals label{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600}
+.legtotals b{font-family:var(--mono);font-size:14px;font-weight:700}
+.openbadge{display:flex;align-items:baseline;gap:9px;padding:6px 16px;border-radius:12px;line-height:1}
+.openbadge .ob-num{font-family:var(--mono);font-size:24px;font-weight:800}
+.openbadge .ob-lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px}
+.openbadge.long{background:var(--green-light);color:var(--green);border:2px solid var(--green-border)}
+.openbadge.short{background:var(--accent-light);color:var(--accent);border:2px solid var(--accent)}
+.spreadmon{margin-bottom:14px}
+.spreadmon h4{font-size:12px;margin:0 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.spcard{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:11px 16px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:#FBFAFF}
+.spcard.lone{background:#FCFBF7}
+.spcard .sp-tag{font-weight:700;font-family:var(--mono);font-size:14px;min-width:150px}
+.spcard .m{display:flex;flex-direction:column;gap:1px}
+.spcard .m label{font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600}
+.spcard .m b{font-family:var(--mono);font-size:13px;font-weight:700}
+.spcard input.markin{width:78px;font-family:var(--mono);padding:3px 5px;border:1px solid var(--border2,#ccc);border-radius:5px}
+.spcard .sp-hint{flex-basis:100%;font-size:12px;color:var(--muted);margin-top:1px;line-height:1.35}
+.spcard .splegs{flex-basis:100%;display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.spcard .spleg{font-family:var(--mono);font-size:12px;font-weight:700;padding:3px 11px;border-radius:6px;border:1px solid var(--border)}
+.spcard .spleg.short{background:var(--red-light);color:var(--red);border-color:var(--red-border)}
+.spcard .spleg.long{background:var(--green-light);color:var(--green);border-color:var(--green-border)}
+.btn-mini{font-size:10px;font-weight:700;letter-spacing:.3px;padding:3px 9px;margin-left:10px;border:1px solid var(--border2,#ccc);border-radius:6px;background:#fff;color:#5b3df5;cursor:pointer;vertical-align:middle}
+.btn-mini:disabled{opacity:.55;cursor:default}
+.btn-mini.btn-close{color:#c0392b;border-color:#e6b0aa;align-self:center}
+.pxbar{display:flex;gap:8px;align-items:center}
+.pxtile{display:flex;align-items:baseline;gap:6px;padding:3px 10px;border:1px solid var(--border);border-radius:8px;background:#fff}
+.pxtile .sym{font-size:10px;font-weight:800;letter-spacing:.5px;color:var(--muted)}
+.pxtile .val{font-size:15px;font-weight:800;font-family:var(--mono);line-height:1}
+.dd-toggle{font-size:12px;font-weight:700;color:#5b3df5;background:#fff;border:1px solid var(--border);border-radius:8px;padding:7px 14px;cursor:pointer;margin-bottom:12px}
+/* Delta by Strategy — one condensed box (right column of the Analytics tab) */
+.deltapanel{border:1px solid var(--border);border-radius:10px;background:var(--surface);overflow:hidden;margin-bottom:18px}
+.deltahd{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);background:var(--surface3)}
+.deltahd h3{font-size:10.5px;margin:0;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.deltastrat{border:none;border-radius:0;padding:5px 14px 6px;margin:0;background:transparent;border-bottom:1px solid var(--surface2)}
+.deltastrat-hd{display:flex;justify-content:flex-start;align-items:baseline;gap:16px;font-size:12px;margin-bottom:1px}
+.deltastrat-hd .val{font-family:var(--mono);font-weight:800;font-size:12.5px}
+.deltatbl{width:auto;border-collapse:collapse;font-size:10.5px}
+.deltatbl th{text-align:left;font-size:8.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);padding:2px 11px;font-weight:700}
+.deltatbl td{padding:2px 11px;font-family:var(--mono);border-top:1px solid var(--surface2);white-space:nowrap}
+.deltatbl td.dr,.deltatbl th.dr{text-align:right}
+/* Box the long (protection) legs to set them apart from the shorts */
+.deltatbl tr.longleg td{background:var(--accent-light);border-top:1.5px solid var(--accent);border-bottom:1.5px solid var(--accent)}
+.deltatbl tr.longleg td:first-child{border-left:1.5px solid var(--accent)}
+.deltatbl tr.longleg td:last-child{border-right:1.5px solid var(--accent)}
+/* Daily Diamonds: box PCS (bullish → green) and CCS (bearish → pink) groups */
+.deltatbl tbody.ddgrp.pcs td{background:var(--green-light)}
+.deltatbl tbody.ddgrp.ccs td{background:var(--red-light)}
+.deltatbl tbody.ddgrp.pcs tr:first-child td{border-top:2px solid var(--green-border)}
+.deltatbl tbody.ddgrp.pcs tr:last-child td{border-bottom:2px solid var(--green-border)}
+.deltatbl tbody.ddgrp.pcs td:first-child{border-left:2px solid var(--green-border)}
+.deltatbl tbody.ddgrp.pcs td:last-child{border-right:2px solid var(--green-border)}
+.deltatbl tbody.ddgrp.ccs tr:first-child td{border-top:2px solid var(--red-border)}
+.deltatbl tbody.ddgrp.ccs tr:last-child td{border-bottom:2px solid var(--red-border)}
+.deltatbl tbody.ddgrp.ccs td:first-child{border-left:2px solid var(--red-border)}
+.deltatbl tbody.ddgrp.ccs td:last-child{border-right:2px solid var(--red-border)}
+.deltatbl tr.ddgrp-h td{font-size:9px;text-transform:uppercase;letter-spacing:.4px;font-weight:800;padding:4px 11px}
+.deltatbl tbody.ddgrp.pcs tr.ddgrp-h td{color:var(--green)}
+.deltatbl tbody.ddgrp.ccs tr.ddgrp-h td{color:var(--red)}
+.deltatbl tbody.ddgap td{height:6px;border:none!important;background:transparent!important;padding:0}
+.deltatbl tfoot td{border-top:1.5px solid var(--border2);font-weight:800;padding-top:3px}
+.deltatbl tfoot td:first-child{text-transform:uppercase;font-size:9px;letter-spacing:.3px;color:var(--muted)}
+.deltaempty{font-size:10px;color:var(--muted);padding:2px 14px 6px}
+.deltanet{display:flex;justify-content:space-between;align-items:baseline;padding:10px 14px;background:#FBFAFF;border-top:1px solid var(--border);font-size:14px;font-weight:800}
+.deltanet .val{font-family:var(--mono)}
+table.grid td.calc{padding:3px 5px;font-family:var(--mono);background:#FCFCFD;font-weight:600}
+table.grid td.hintcell{font-family:'Inter',sans-serif;font-weight:400;font-size:10px;color:var(--text2);white-space:normal;min-width:230px;max-width:300px;line-height:1.35;background:#FBFAFF}
+.up{color:var(--green)}.dn{color:var(--red)}
+.ginp,.gsel{border:none;background:transparent;font-family:var(--mono);font-size:11px;padding:4px 4px;width:100%;outline:none;color:var(--text)}
+.ginp:focus,.gsel:focus{background:var(--accent-light);box-shadow:inset 0 0 0 2px var(--accent)}
+table.grid.fit{width:auto}
+table.grid.fit th{white-space:normal;vertical-align:bottom;min-width:0}
+table.grid.fit .gsel{width:auto;min-width:64px}
+table.grid.fit input[type=number]{-moz-appearance:textfield}
+table.grid.fit input[type=number]::-webkit-outer-spin-button,table.grid.fit input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+td:has(.btn-red){padding:3px 5px;text-align:center}
+/* analytics */
+.an-table{width:100%;max-width:900px;border-collapse:collapse;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.an-table td{padding:8px 14px;border-bottom:1px solid var(--surface2)}
+.an-table td.lbl{font-weight:600;width:280px}
+.an-table td.val{font-family:var(--mono);font-weight:700;width:150px;text-align:right}
+.an-table td.desc{font-size:10px;color:var(--muted2)}
+.covrow{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.covcard{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 16px;min-width:150px}
+.covcard label{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600;display:block;margin-bottom:3px}
+.covcard .cv{font-family:var(--mono);font-size:17px;font-weight:700}
+.an-table tr.input td.val{background:var(--yellow-light)}
+.ainp{border:1px solid var(--border2);border-radius:5px;font-family:var(--mono);font-size:12px;padding:4px 6px;width:120px;text-align:right;outline:none}
+.ainp:focus{border-color:var(--accent)}
+/* Analytics — two columns: one metrics box (left) + Delta-by-Strategy box (right) */
+.an-2col{display:grid;grid-template-columns:minmax(0,0.95fr) minmax(0,1.05fr);gap:16px;align-items:start;max-width:1720px;margin-bottom:18px}
+@media(max-width:1080px){.an-2col{grid-template-columns:1fr}}
+.an-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.an-grp{padding:7px 14px;background:var(--surface3);font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--surface2)}
+.an-row+.an-grp{border-top:1px solid var(--border)}
+.an-row{display:flex;align-items:center;gap:12px;padding:4px 14px;border-bottom:1px solid var(--surface2)}
+.an-box .an-row:last-child{border-bottom:none}
+.an-l{display:flex;flex-direction:row;align-items:baseline;gap:8px;min-width:0;flex:1 1 auto}
+.an-lbl{font-size:12px;font-weight:600;line-height:1.25;white-space:nowrap}
+.an-note{font-size:10px;color:var(--muted2);line-height:1.3;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.an-v{margin-left:auto;text-align:right;white-space:nowrap;flex:none}
+.an-row .val{font-family:var(--mono);font-weight:700;font-size:12.5px}
+.an-row.input-row .ainp{background:var(--yellow-light);width:104px;font-size:12px}
+.an-row.input-row .moneycell{background:var(--yellow-light);min-width:78px;font-size:12.5px}
+.delta-lean{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.delta-lean .lean{font-size:10.5px;font-weight:700;white-space:nowrap}
+.delta-lean .lean.up{color:var(--green)}.delta-lean .lean.dn{color:var(--red)}.delta-lean .lean.neu{color:var(--muted2)}
+.an-more{display:none}
+.an-more.show{display:block}
+.an-toggle{cursor:pointer;user-select:none;background:var(--surface3)}
+.an-toggle:hover{background:var(--surface2)}
+.an-toggle .an-lbl{color:var(--accent);font-weight:700}
+.an-toggle .an-note{color:var(--muted2)}
+/* MELOCS Watch — short-put vs long-put gap alert */
+.melo-wrap{max-width:1720px;margin:0 0 16px}
+.melo-box{padding:0}
+.melo-head{font-size:13px;font-weight:800;padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.melo-sub{font-size:10.5px;font-weight:600;color:var(--muted2)}
+.melo-block{padding:12px 14px;border-bottom:1px solid var(--surface2)}
+.melo-block:last-child{border-bottom:none}
+.melo-u{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.04em;margin-bottom:8px}
+.melo-status{font-size:13px;font-weight:800;padding:8px 12px;border-radius:8px;margin-bottom:10px;display:inline-block}
+.melo-status.clear{background:var(--green-light);color:var(--green);border:1px solid var(--green-border)}
+.melo-status.approach{background:var(--yellow-light);color:var(--yellow);border:1px solid var(--yellow-border)}
+.melo-status.consider{background:#FFF7ED;color:#C2410C;border:1px solid #FED7AA}
+.melo-status.wide{background:var(--red-light);color:var(--red);border:1px solid var(--red-border);animation:pulse 2s infinite}
+.melo-status.none{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.melo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+@media(max-width:640px){.melo-grid{grid-template-columns:repeat(2,1fr)}}
+.melo-cell{background:var(--surface2);border-radius:8px;padding:8px 10px}
+.melo-cell label{display:block;font-size:10px;color:var(--muted2);font-weight:600;margin-bottom:3px}
+.melo-cell .mv{font-size:16px;font-weight:800}
+.melo-cell .mv.up{color:var(--green)}
+.melo-cell .mv.dn{color:var(--red)}
+.melo-cell .mv.strong{font-size:18px}
+.melo-eq{font-size:11px;font-weight:600;color:var(--muted2)}
+.melo-lists{font-size:11.5px;line-height:1.7}
+.ml-tag{display:inline-block;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:4px;margin-right:6px}
+.ml-tag.short{background:var(--green-light);color:var(--green)}
+.ml-tag.long{background:var(--red-light);color:var(--red)}
+.melo-note{font-size:10.5px;color:var(--muted);margin-top:8px}
+.melo-warn{font-size:10.5px;color:var(--red);font-weight:700;margin-top:6px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:9px 16px;border-radius:8px;font-size:12px;z-index:9999;display:none}
+.rollpanel{background:var(--yellow-light);border:1px solid var(--yellow-border);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.rollpanel h4{font-size:13px;font-weight:700;color:var(--yellow);margin-bottom:10px}
+.rollf{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.rollf .field{display:flex;flex-direction:column;gap:3px}
+.rollf label{font-size:10px;color:var(--muted);font-weight:600}
+.rollf input{border:1px solid var(--border2);border-radius:5px;font-family:var(--mono);font-size:12px;padding:5px 7px;outline:none;background:#fff}
+.rollf input:focus{border-color:var(--accent)}
+.section{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.section-hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface3)}
+.section-hdr h3{font-size:14px;font-weight:700}
+.section-body{padding:16px 18px}
+.spx-banner{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.spx-price{font-family:var(--mono);font-size:32px;font-weight:700}
+.spx-change{font-family:var(--mono);font-size:16px;font-weight:600}
+.spx-change.up{color:var(--green)}.spx-change.dn{color:var(--red)}
+.spx-meta{display:flex;gap:20px;flex-wrap:wrap;margin-left:auto}
+.spx-stat{display:flex;flex-direction:column;gap:2px}
+.spx-stat label{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600}
+.spx-stat .sv{font-family:var(--mono);font-size:13px;font-weight:600}
+.refresh-btn{padding:6px 14px;border:1px solid var(--border2);border-radius:6px;background:var(--surface2);font-size:11px;font-weight:600;cursor:pointer;color:var(--muted)}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.gap-status{font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px}
+.gap-status.clear{background:var(--green-light);color:var(--green);border:1px solid var(--green-border)}
+.gap-status.active{background:var(--red-light);color:var(--red);border:1px solid var(--red-border);animation:pulse 2s infinite}
+.rules-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:700px){.rules-grid{grid-template-columns:1fr}}
+.rule-card{border-radius:10px;padding:14px 16px;border:2px solid;transition:all .2s}
+.rule-card.ok{border-color:var(--green-border);background:var(--green-light)}
+.rule-card.trigger{border-color:var(--red-border);background:var(--red-light)}
+.rule-card.watch{border-color:var(--yellow-border);background:var(--yellow-light)}
+.rule-num{font-size:22px;font-weight:800;font-family:var(--mono);margin-bottom:4px}
+.rule-card.ok .rule-num{color:var(--green)}.rule-card.trigger .rule-num{color:var(--red)}.rule-card.watch .rule-num{color:var(--yellow)}
+.rule-title{font-size:12px;font-weight:700;margin-bottom:6px}
+.rule-value{font-family:var(--mono);font-size:18px;font-weight:700;margin-bottom:4px}
+.rule-desc{font-size:11px;color:var(--muted);line-height:1.5}
+.rule-threshold{font-size:10px;font-weight:600;margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>💎 Diamonds Tracker</h1>
+  <a href="/overview" class="hdr-btn">🗂️ Overview</a>
+  <a href="/diagram" class="hdr-btn">🗺️ Strategy Map</a>
+  <a href="/math" class="hdr-btn">🧮 The Math</a>
+  <a href="/harvest" class="hdr-btn">🌾 Harvest</a>
+  <a href="/accounts" class="hdr-btn">👛 Accounts</a>
+  <a href="/calendar" class="hdr-btn">📅 Calendar</a>
+  <div class="pxbar ml" id="pxbar">
+    <div class="pxtile"><span class="sym">XSP</span><span class="val" id="px_xsp">—</span></div>
+    <div class="pxtile"><span class="sym">SPX</span><span class="val" id="px_spx">—</span></div>
+  </div>
+  <a href="/logout" class="hdr-btn">Sign Out</a>
+</header>
+<div class="page">
+  <div class="acctbar">
+    <label>Account</label>
+    <select id="acct_select" onchange="switchAccount(this.value)"></select>
+    <button class="btn-pull" id="pull_btn" onclick="pullFromTasty()" title="Pull Net Liq, Buying Power &amp; live Yearly LT Calls option marks from tastytrade for this account">⟳ Pull from tastytrade</button>
+    <button class="btn-import" id="import_btn" onclick="importPositions()" title="Import open positions from tastytrade into this account">↓ Import Positions</button>
+    <button class="btn-import" id="sync_btn" onclick="syncFromTasty()" title="Auto-reconcile recent fills — rolls, partial closes and share sales — from tastytrade" style="background:#EEF2FF;color:#4338CA;border-color:#C7D2FE">⟳ Sync Trades</button>
+    <button class="btn-clear" id="clear_btn" onclick="clearAccount()" title="Delete all trade rows in this account (Analytics inputs kept)">🗑 Clear</button>
+  </div>
+
+  <div class="modal-bg" id="import_modal">
+    <div class="modal">
+      <div class="modal-hd">
+        <span style="font-size:18px">↓</span>
+        <h3>Import Positions from tastytrade</h3>
+        <span class="acct-hint" id="import_sub" style="margin-left:auto"></span>
+      </div>
+      <div class="modal-bd"><div id="stage_host"></div></div>
+      <div class="modal-ft">
+        <button class="btn-primary" onclick="fileImport()">File into tracker</button>
+        <button class="btn-red" style="background:transparent;color:var(--muted);border-color:var(--border2)" onclick="document.getElementById('import_modal').classList.remove('show')">Cancel</button>
+        <span class="acct-hint" id="import_note" style="margin-left:auto">Legs are added as new rows — nothing you've logged is overwritten.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('analytics',this)">📊 Analytics</button>
+    <button class="tab-btn" onclick="switchTab('diamonds',this)">💎 Diamonds</button>
+    <button class="tab-btn" onclick="switchTab('travis',this)">💼 Trader Travis</button>
+    <div class="acctpnl" id="acct_pnl">
+      <div class="apnl-item"><label>Account P/L Day</label><b id="pnl_day" class="neu">—</b></div>
+      <div class="apnl-item"><label>Account P/L Open</label><b id="pnl_open" class="neu">—</b><span class="apnl-sub" id="pnl_sub"></span></div>
+      <button class="apnl-refresh" id="pnl_btn" onclick="pullAccountPnl()" title="Refresh whole-account P/L (all positions) live from tastytrade">⟳</button>
+    </div>
+  </div>
+  <div class="subtabs" id="diamonds_subtabs" style="display:none">
+    <button class="tab-btn active" onclick="switchDiamond('mp',this)">💰 Money Press</button>
+    <button class="tab-btn" onclick="switchDiamond('dd',this)">🗓️ Daily Diamonds</button>
+    <button class="tab-btn" onclick="switchDiamond('gi',this)">🛟 Gap Insurance</button>
+    <button class="tab-btn" onclick="switchDiamond('melocs',this)">🎯 MELOCs</button>
+    <button class="tab-btn" onclick="switchDiamond('leaps',this)">🚀 LEAPs</button>
+    <button class="tab-btn" onclick="switchDiamond('spec',this)">🎲 SPEC</button>
+  </div>
+
+  <div class="tab-pane active" id="pane-analytics"><div id="melocs_watch" class="melo-wrap"></div><div class="an-2col"><div id="an_host"></div><div id="delta_panel" class="deltapanel"></div></div></div>
+  <div class="tab-pane" id="pane-mp">
+    <div class="subtabs" id="mp_subtabs"></div>
+    <div class="gridbox"><div id="mp_short_host"></div></div>
+    <div class="gridbox"><div id="mp_long_host"></div></div>
+  </div>
+  <div class="tab-pane" id="pane-dd">
+    <div class="rollpanel" id="dd_rollpanel" style="display:none">
+      <h4>↻ Roll spread <span id="dd_roll_from" style="font-weight:400;color:var(--muted)"></span></h4>
+      <div class="rollf">
+        <div class="field"><label>Roll Net Credit/ct (+ collected / − paid)</label><input id="dd_roll_credit" type="number" step="0.01" placeholder="0.96" style="width:150px"></div>
+        <div class="field"><label>Old spread closed for /ct (cr +, db −)</label><input id="dd_roll_close" type="number" step="0.01" placeholder="0.03" style="width:160px" title="Optional — what the closing side of the combo went for. Enables per-roll P&L."></div>
+        <div class="field"><label>New Expiration</label><input id="dd_roll_exp" type="date" style="width:150px"></div>
+        <div class="field"><label>New Short Put</label><input id="dd_roll_sp" type="number" style="width:100px"></div>
+        <div class="field"><label>New Long Put</label><input id="dd_roll_lp" type="number" style="width:100px"></div>
+        <div class="field"><label>New Short Call</label><input id="dd_roll_sc" type="number" style="width:100px"></div>
+        <div class="field"><label>New Long Call</label><input id="dd_roll_lc" type="number" style="width:100px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-primary" onclick="submitDailyRoll()">Save Roll</button>
+          <button class="btn-red" style="background:transparent;color:var(--muted);border-color:var(--border2)" onclick="document.getElementById('dd_rollpanel').style.display='none'">Cancel</button>
+        </div>
+      </div>
+      <input type="hidden" id="dd_roll_id">
+    </div>
+    <div id="daily_monitor" class="spreadmon"></div>
+    <button class="dd-toggle" id="dd_toggle" onclick="toggleDailyGrid()">▸ Show trade detail</button>
+    <div class="gridbox" id="daily_gridwrap" style="display:none"><div id="daily_host"></div></div>
+  </div>
+  <div class="tab-pane" id="pane-leaps"><div class="gridbox"><div id="leaps_long_host"></div></div><div class="gridbox"><div id="leaps_short_host"></div></div></div>
+  <div class="tab-pane" id="pane-spec"><div class="gridbox"><div id="spec_host"></div></div></div>
+  <div class="tab-pane" id="pane-gi">
+  <!-- SPX Price Banner -->
+  <div class="spx-banner">
+    <div>
+      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:2px">S&P 500 INDEX</div>
+      <div style="display:flex;align-items:baseline;gap:10px">
+        <div class="spx-price" id="spx_price">—</div>
+        <div class="spx-change" id="spx_change"></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted2)" id="spx_time"></div>
+    </div>
+    <div class="spx-meta">
+      <div class="spx-stat"><label>ATR-14</label><div class="sv" id="spx_atr">—</div></div>
+      <div class="spx-stat"><label>50-day MA</label><div class="sv" id="spx_ma50">—</div></div>
+      <div class="spx-stat"><label>% vs 50MA</label><div class="sv" id="spx_vs50">—</div></div>
+      <div class="spx-stat"><label>52W High</label><div class="sv" id="spx_hi52">—</div></div>
+      <div class="spx-stat"><label>Today's Move</label><div class="sv" id="spx_move">—</div></div>
+      <div class="spx-stat"><label>ATR ×</label><div class="sv" id="spx_atr_x">—</div></div>
+    </div>
+    <button class="refresh-btn" onclick="loadSPX()">↻ Refresh</button>
+  </div>
+
+  <!-- GAP Insurance Trigger Rules -->
+  <div class="section">
+    <div class="section-hdr">
+      <span style="font-size:16px">💎</span>
+      <h3>Diamonds GAP Insurance — Preston James Rules</h3>
+      <span class="gap-status clear" id="gap_overall">Checking...</span>
+      <span style="font-size:10px;color:var(--muted);margin-left:auto" id="gap_time"></span>
+    </div>
+    <div class="section-body">
+      <div class="rules-grid">
+        <div class="rule-card ok" id="rule1_card">
+          <div class="rule-num">①</div><div class="rule-title">All-Time High</div>
+          <div class="rule-value" id="rule1_val">—</div>
+          <div class="rule-desc">Buy GAP Insurance when SPX hits an all-time high.</div>
+          <div class="rule-threshold" id="rule1_thresh"></div>
+        </div>
+        <div class="rule-card ok" id="rule2_card">
+          <div class="rule-num">②</div><div class="rule-title">3× ATR Single Day Move</div>
+          <div class="rule-value" id="rule2_val">—</div>
+          <div class="rule-desc">Buy when SPX moves 3× its average daily range in one session.</div>
+          <div class="rule-threshold" id="rule2_thresh"></div>
+        </div>
+        <div class="rule-card ok" id="rule3_card">
+          <div class="rule-num">③</div><div class="rule-title">4.5% Above 50-Day MA</div>
+          <div class="rule-value" id="rule3_val">—</div>
+          <div class="rule-desc">Buy when SPX is stretched 4.5%+ above its 50-day moving average.</div>
+          <div class="rule-threshold" id="rule3_thresh"></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted2)">
+        When any rule fires → buy SPX protective puts (log it under Money Press / Gap Insurance below).
+        Rules auto-refresh every 5 minutes when connected to Schwab.
+      </div>
+    </div>
+  </div>
+    <div class="covrow" id="gi_cover"></div>
+    <div class="gridbox"><div id="gi_long_host"></div></div>
+    <div class="gridbox"><div id="gi_short_host"></div></div>
+  </div>
+  <div class="tab-pane" id="pane-melocs">
+  <!-- MELOC Timing Alert -->
+  <div class="section">
+    <div class="section-hdr">
+      <span style="font-size:16px">🎯</span>
+      <h3>MELOC Timing — Add Into Strength</h3>
+      <span class="gap-status clear" id="meloc_status">Checking...</span>
+      <span style="font-size:10px;color:var(--muted);margin-left:auto" id="meloc_time"></span>
+    </div>
+    <div class="section-body">
+      <div class="rules-grid">
+        <div class="rule-card ok" id="mrule1_card">
+          <div class="rule-num">①</div><div class="rule-title">Near / At All-Time High</div>
+          <div class="rule-value" id="mrule1_val">—</div>
+          <div class="rule-desc">Open MELOCs when SPX is at or pushing its highs. Add a starter near the highs; scale up (2–3) at/above a new all-time high.</div>
+          <div class="rule-threshold" id="mrule1_thresh"></div>
+        </div>
+        <div class="rule-card watch" id="mrule2_card">
+          <div class="rule-num">②</div><div class="rule-title">Buying Power / Delta Need</div>
+          <div class="rule-value" style="font-size:14px">Discretionary</div>
+          <div class="rule-desc">Also add when you need to lift Buying Power or hedge long delta. Keep size small — use the training-video math to size.</div>
+          <div class="rule-threshold"><span style="color:var(--muted)">Your call</span></div>
+        </div>
+        <div class="rule-card watch" id="mrule3_card">
+          <div class="rule-num">③</div><div class="rule-title">Portfolio Margin — Model First</div>
+          <div class="rule-value" style="font-size:14px">Precondition</div>
+          <div class="rule-desc">MELOCs generally only raise BP in a Portfolio Margin account. Model the trade first — if it doesn't lift your BP, don't place it.</div>
+          <div class="rule-threshold"><span style="color:var(--muted)">Required check</span></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted2)">
+        A MELOC is a long-dated short-call vertical sold into strength — it pulls in credit and (in a PM account) adds Buying Power.
+        When SPX is at/near its highs, the timing is right to add small (1–3). Auto-refreshes with SPX every 5 min.
+      </div>
+    </div>
+  </div>
+    <div class="gridbox"><div id="melocs_host"></div></div>
+  </div>
+  <div class="tab-pane" id="pane-travis">
+    <div class="gridbox"><div id="yltc_host"></div></div>
+    <div class="gridbox" style="margin-top:18px"><div id="spy_shares_host"></div></div>
+    <div class="gridbox" style="margin-top:18px"><div id="naked_calls_host"></div></div>
+    <div class="gridbox" style="margin-top:18px"><div id="mispx_host"></div></div>
+  </div>
+</div>
+<!-- Sync-from-tastytrade preview / confirm -->
+<div class="modal-bg" id="sync_modal">
+  <div class="modal" style="max-width:920px">
+    <div class="modal-hd"><h3>⟳ Sync trades from tastytrade</h3><span id="sync_sub" style="font-size:12px;color:var(--muted);margin-left:auto"></span></div>
+    <div class="modal-bd"><div id="sync_body"></div></div>
+    <div class="modal-ft">
+      <button class="btn-primary" id="sync_apply" onclick="applySync()">Apply selected</button>
+      <button class="btn-red" style="background:transparent;color:var(--muted);border-color:var(--border2)" onclick="document.getElementById('sync_modal').classList.remove('show')">Cancel</button>
+      <span id="sync_note" style="font-size:11px;color:var(--muted);margin-left:auto"></span>
+    </div>
+  </div>
+</div>
+<!-- Partial close / roll / sell dialog -->
+<div class="modal-bg" id="act_modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-hd"><h3 id="act_title">Close</h3><span id="act_sub" style="font-size:12px;color:var(--muted);margin-left:auto"></span></div>
+    <div class="modal-bd">
+      <div class="rollf">
+        <div class="field"><label id="act_qtyL">Contracts to close</label><input id="act_qty" type="number" step="1" min="1" style="width:140px"></div>
+        <div class="field"><label id="act_exitL">Exit premium / ct</label><input id="act_exit" type="number" step="0.01" style="width:150px"></div>
+        <div class="field roll-only"><label>New expiration</label><input id="act_exp" type="date" style="width:150px"></div>
+        <div class="field roll-only"><label>New strike</label><input id="act_strike" type="number" step="0.01" style="width:120px"></div>
+        <div class="field roll-only"><label>New premium / ct</label><input id="act_newprem" type="number" step="0.01" style="width:150px"></div>
+      </div>
+      <div id="act_hint" style="font-size:11px;color:var(--muted);margin-top:10px"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-primary" onclick="submitAct()">Confirm</button>
+      <button class="btn-red" style="background:transparent;color:var(--muted);border-color:var(--border2)" onclick="closeActModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const $=id=>document.getElementById(id);
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(window._tt);window._tt=setTimeout(()=>t.style.display='none',1500);}
+function num(v){const n=parseFloat(v);return isNaN(n)?0:n;}
+function has(v){return v!==undefined&&v!==null&&v!==''&&!isNaN(parseFloat(v));}
+function inti(v,d){const n=parseInt(v);return isNaN(n)?(d||0):n;}
+function today(){return new Date().toISOString().slice(0,10);}
+function dBetween(a,b){if(!a)return null;const s=new Date(a),e=b?new Date(b):new Date();if(isNaN(s))return null;return Math.round((e-s)/864e5);}
+function dTo(d){if(!d)return null;const t=new Date(d);if(isNaN(t))return null;return Math.round((t-new Date())/864e5);}
+function fMoney(v){if(v==null||isNaN(v))return '—';return (v<0?'-$':'$')+Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fPct(v){return v==null||isNaN(v)?'—':(v*100).toFixed(1)+'%';}
+function fNum(v){return v==null||isNaN(v)?'—':(+v).toLocaleString();}
+function fSigned(v){return v==null||isNaN(v)?'—':(v>=0?'+':'')+(+v).toFixed(2);}
+function fmtCalc(v,f){return f==='money'?fMoney(v):f==='pct'?fPct(v):f==='signed'?fSigned(v):f==='num'?fNum(v):(v==null?'—':v);}
+function clsOf(v){return (typeof v==='number'&&!isNaN(v))?(v>=0?'up':'dn'):'';}
+// Strategies grouped under the "Diamonds" tab (each reached via the sub-tab bar).
+const DIAMOND_TABS=['mp','dd','gi','melocs','leaps','spec'];
+let curDiamond='mp';
+function switchTab(n,b){
+  if(b){document.querySelectorAll('.tabs > .tab-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');}
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  const sub=$('diamonds_subtabs');
+  if(n==='diamonds'){ if(sub)sub.style.display='flex'; showDiamond(curDiamond); }
+  else{ if(sub)sub.style.display='none'; const pane=$('pane-'+n); if(pane)pane.classList.add('active'); if(n==='analytics'){renderAnalytics();renderDeltaPanel();} }
+}
+function switchDiamond(n,b){ curDiamond=n; showDiamond(n); }
+function showDiamond(n){
+  curDiamond=n;
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  const pane=$('pane-'+n); if(pane)pane.classList.add('active');
+  const btns=document.querySelectorAll('#diamonds_subtabs .tab-btn');
+  btns.forEach(x=>x.classList.remove('active'));
+  const idx=DIAMOND_TABS.indexOf(n); if(btns[idx])btns[idx].classList.add('active');
+}
+
+// daily max risk helper (reused)
+function ddMaxRisk(d){
+  const wp=(has(d.sp)&&has(d.lp))?Math.abs(num(d.sp)-num(d.lp)):0;
+  const wc=(has(d.sc)&&has(d.lc))?Math.abs(num(d.sc)-num(d.lc)):0;
+  const ct=inti(d.contracts,1), width=Math.max(wp,wc);
+  // Debit spread (net credit negative) → max loss = the debit paid.
+  if(has(d.credit)&&num(d.credit)<0) return (Math.abs(num(d.credit))*ct*100)||null;
+  // Credit spread → true max loss = (width − net credit collected) × contracts × 100.
+  const nc=num(d.credit)||0;
+  return (Math.max(0,width-nc)*ct*100)||null;
+}
+function ddRolledPnl(d){ const v=num(d.rolled_pnl)||0; return v||null; }
+function ddPnl(d){
+  if(has(d.close_pnl)) return num(d.close_pnl);   // spread/leg closed via monitor ✓ Close — realized booked directly
+  const rp=num(d.rolled_pnl)||0;
+  const cur=has(d.exit_debit)?(num(d.credit)-num(d.exit_debit))*inti(d.contracts,1)*100:0;
+  return (rp===0 && !has(d.exit_debit))?null:(rp+cur);
+}
+function ddMaxProfit(d){
+  if(!has(d.credit)) return null;
+  const ct=inti(d.contracts,1), nc=num(d.credit);
+  const wp=(has(d.sp)&&has(d.lp))?Math.abs(num(d.sp)-num(d.lp)):0;
+  const wc=(has(d.sc)&&has(d.lc))?Math.abs(num(d.sc)-num(d.lc)):0;
+  const width=Math.max(wp,wc);
+  if(nc<0){
+    if(!width) return null;                             // lone long leg (no spread) — max profit is open-ended, not a spread number
+    return ((width-Math.abs(nc))*ct*100)||null;         // debit spread: (width − debit) × ct × 100
+  }
+  return (nc*ct*100)||null;                              // credit spread / lone short: keep the credit
+}
+
+const SHEETS={
+  mp_long:{host:'mp_long_host',title:'Money Press — Long Puts (Protection)',
+    profitFn:d=>has(d.exit_prem)?(num(d.exit_prem)-num(d.prem_bought))*inti(d.contracts,1)*100:0,
+    cols:[
+      {k:'date_purchased',label:'Date Purchased',type:'date',w:130},{k:'exp',label:'Expiration',type:'date',w:130},
+      {k:'price_at',label:'Price@Trade',type:'num',w:90},{k:'strike',label:'Strike Purchased',type:'num',w:90},
+      {k:'contracts',label:'Contracts',type:'num',w:70},{k:'prem_bought',label:'Premium Bought',type:'num',w:100},
+      {k:'exit_prem',label:'Exit Premium',type:'num',w:95},
+      {label:'Premium Earned',type:'calc',fmt:'signed',calc:d=>has(d.exit_prem)?(num(d.exit_prem)-num(d.prem_bought)):null},
+      {label:'Profit (Loss)',type:'calc',fmt:'money',calc:d=>has(d.exit_prem)?(num(d.exit_prem)-num(d.prem_bought))*inti(d.contracts,1)*100:null},
+      {label:'Cumulative',type:'calc',fmt:'money',cum:true},
+      {label:'% Gain',type:'calc',fmt:'pct',calc:d=>(has(d.exit_prem)&&num(d.prem_bought))?(num(d.exit_prem)-num(d.prem_bought))/num(d.prem_bought):null},
+      {k:'status',label:'Status',type:'select',options:['Open','Closed']},{k:'notes',label:'Notes',type:'text',w:150}]},
+  mp_short:{host:'mp_short_host',title:'Money Press — Weekly Sold Puts (Income)',
+    profitFn:d=>has(d.exit_prem)?(num(d.prem_sold)-num(d.exit_prem))*inti(d.contracts,1)*100:0,
+    cols:[
+      {k:'date_sold',label:'Date Sold',type:'date',w:130},{k:'exp',label:'Expiration',type:'date',w:130},
+      {k:'price_at',label:'Price@Trade',type:'num',w:90},{k:'strike',label:'Strike Sold',type:'num',w:90},
+      {k:'contracts',label:'Contracts',type:'num',w:70},{k:'prem_sold',label:'Premium Sold',type:'num',w:100},
+      {k:'exit_prem',label:'Exit Premium',type:'num',w:95},
+      {label:'Premium Earned',type:'calc',fmt:'signed',calc:d=>has(d.exit_prem)?(num(d.prem_sold)-num(d.exit_prem)):null},
+      {label:'Profit (Loss)',type:'calc',fmt:'money',calc:d=>has(d.exit_prem)?(num(d.prem_sold)-num(d.exit_prem))*inti(d.contracts,1)*100:null},
+      {label:'Cumulative',type:'calc',fmt:'money',cum:true},
+      {label:'% Gain',type:'calc',fmt:'pct',calc:d=>(has(d.exit_prem)&&num(d.prem_sold))?(num(d.prem_sold)-num(d.exit_prem))/num(d.prem_sold):null},
+      {k:'status',label:'Status',type:'select',options:['Open','Closed']},{k:'notes',label:'Notes',type:'text',w:150}]},
+  daily:{host:'daily_host',title:'Daily Diamonds — Credit Spreads & Iron Condors',
+    cols:[
+      {k:'trade_id',label:'Trade ID',type:'text',w:80},{k:'open',label:'Open Date',type:'date',w:120},
+      {k:'exp',label:'Expiration',type:'date',w:120},{k:'close',label:'Close Date',type:'date',w:120},
+      {k:'status',label:'Status',type:'select',options:['Open','Closed'],w:80},
+      {label:'Days In Trade',type:'calc',fmt:'num',calc:d=>dBetween(d.open,d.close)},
+      {k:'strategy',label:'Strategy',type:'select',options:['PCS','CCS','IC'],w:70},{k:'ticker',label:'Ticker',type:'text',w:70},
+      {k:'contracts',label:'# Contracts',type:'num',w:70},
+      {k:'sp',label:'Short Put',type:'num',w:90},{k:'lp',label:'Long Put',type:'num',w:90},
+      {k:'sc',label:'Short Call',type:'num',w:90},{k:'lc',label:'Long Call',type:'num',w:90},
+      {label:'Width Put',type:'calc',fmt:'num',calc:d=>(has(d.sp)&&has(d.lp))?Math.abs(num(d.sp)-num(d.lp)):null},
+      {label:'Width Call',type:'calc',fmt:'num',calc:d=>(has(d.sc)&&has(d.lc))?Math.abs(num(d.sc)-num(d.lc)):null},
+      {label:'What to Watch',type:'calc',hint:true,calc:hintDaily},
+      {k:'credit',label:'Net Credit/ct',type:'num',w:100},
+      {label:'Total Credit / (Debit)',type:'calc',fmt:'money',calc:d=>has(d.credit)?num(d.credit)*inti(d.contracts,1)*100:null},
+      {k:'exit_debit',label:'Exit Debit/ct',type:'num',w:100},
+      {label:'Max Risk',type:'calc',fmt:'money',calc:ddMaxRisk},
+      {label:'Max Profit',type:'calc',fmt:'money',calc:ddMaxProfit},
+      {k:'target',label:'Target Exit',type:'text',w:80},
+      {label:'Rolled P&L',type:'calc',fmt:'money',calc:ddRolledPnl},
+      {label:'Realized P&L',type:'calc',fmt:'money',calc:ddPnl},
+      {label:'Return on Risk',type:'calc',fmt:'pct',calc:d=>{const mr=ddMaxRisk(d),p=ddPnl(d);return (p!=null&&mr)?p/mr:null;}}]},
+  leaps_long:{host:'leaps_long_host',title:'Leaps — LEAP Long Calls',
+    cols:[
+      {k:'trade_id',label:'Trade ID',type:'text',w:80},{k:'open',label:'Open Date',type:'date',w:120},
+      {k:'exp',label:'Expiration',type:'date',w:120},{k:'close',label:'Close Date',type:'date',w:120},
+      {label:'Days In Trade',type:'calc',fmt:'num',calc:d=>dBetween(d.open,d.close)},
+      {k:'ticker',label:'Ticker',type:'text',w:70},{k:'contracts',label:'# Contracts',type:'num',w:70},
+      {k:'strike',label:'Long Call Strike',type:'num',w:110},{k:'cost',label:'Cost / Contract',type:'num',w:110},
+      {label:'Total Cost',type:'calc',fmt:'money',calc:d=>has(d.cost)?num(d.cost)*inti(d.contracts,1)*100:null},
+      {label:'Max Profit',type:'calc',calc:d=>has(d.cost)?'Uncapped ↑':null},
+      {k:'exit_prem',label:'Exit Prem / Ct',type:'num',w:100},
+      {label:'Realized P&L',type:'calc',fmt:'money',calc:d=>has(d.exit_prem)?(num(d.exit_prem)-num(d.cost))*inti(d.contracts,1)*100:null},
+      {label:'Return on Risk',type:'calc',fmt:'pct',calc:d=>{const tc=num(d.cost)*inti(d.contracts,1)*100;const p=has(d.exit_prem)?(num(d.exit_prem)-num(d.cost))*inti(d.contracts,1)*100:null;return (p!=null&&tc)?p/tc:null;}},
+      {k:'notes',label:'Notes',type:'text',w:130}]},
+  leaps_short:{host:'leaps_short_host',title:'Leaps — Short Calls Sold Against',
+    cols:[
+      {k:'trade_id',label:'Short Trade ID',type:'text',w:100},{k:'leap_conn',label:'LEAP Connection',type:'text',w:110},
+      {k:'open',label:'Open Date',type:'date',w:120},{k:'exp',label:'Expiration',type:'date',w:120},{k:'close',label:'Close Date',type:'date',w:120},
+      {label:'Days In Trade',type:'calc',fmt:'num',calc:d=>dBetween(d.open,d.close)},
+      {k:'contracts',label:'# Contracts',type:'num',w:70},{k:'strike',label:'Strike',type:'num',w:90},
+      {k:'prem',label:'Premium / Ct',type:'num',w:100},
+      {label:'Premium Received',type:'calc',fmt:'money',calc:d=>has(d.prem)?num(d.prem)*inti(d.contracts,1)*100:null},
+      {k:'exit_prem',label:'Exit Prem / Ct',type:'num',w:100},
+      {label:'Realized P&L',type:'calc',fmt:'money',calc:d=>has(d.exit_prem)?(num(d.prem)-num(d.exit_prem))*inti(d.contracts,1)*100:null},
+      {label:'Return on Risk',type:'calc',fmt:'pct',calc:d=>{const rec=num(d.prem)*inti(d.contracts,1)*100;const p=has(d.exit_prem)?(num(d.prem)-num(d.exit_prem))*inti(d.contracts,1)*100:null;return (p!=null&&rec)?p/rec:null;}},
+      {k:'notes',label:'Notes',type:'text',w:130}]},
+  gi_long:{host:'gi_long_host',title:'Gap Insurance — Long Puts (Protection)',
+    cols:[
+      {k:'trade_id',label:'Trade ID',type:'text',w:90},{k:'purchase',label:'Purchase Date',type:'date',w:120},
+      {k:'exp',label:'Expiration',type:'date',w:120},
+      {label:'Days to Exp',type:'calc',fmt:'num',calc:d=>dTo(d.exp)},
+      {k:'ticker',label:'Ticker',type:'text',w:70},{k:'contracts',label:'# Contracts',type:'num',w:70},
+      {k:'strike',label:'Long Strike',type:'num',w:100},{k:'prem_paid',label:'Premium Paid/ct',type:'num',w:110},
+      {label:'Total Cost',type:'calc',fmt:'money',calc:d=>has(d.prem_paid)?num(d.prem_paid)*inti(d.contracts,1)*100:null},
+      {k:'exit_date',label:'Exit Date',type:'date',w:120},{k:'exit_prem',label:'Exit Prem/ct',type:'num',w:100},
+      {label:'Realized P&L',type:'calc',fmt:'money',calc:d=>has(d.exit_prem)?(num(d.exit_prem)-num(d.prem_paid))*inti(d.contracts,1)*100:null},
+      {k:'notes',label:'Notes',type:'text',w:130}]},
+  gi_short:{host:'gi_short_host',title:'Gap Insurance — Short Puts (Cost Offset)',
+    cols:[
+      {k:'trade_id',label:'Trade ID',type:'text',w:90},{k:'sold_date',label:'Sold Date',type:'date',w:120},
+      {k:'exp',label:'Expiration',type:'date',w:120},
+      {label:'Days to Exp',type:'calc',fmt:'num',calc:d=>dTo(d.exp)},
+      {k:'ticker',label:'Ticker',type:'text',w:70},{k:'contracts',label:'# Contracts',type:'num',w:70},
+      {k:'strike',label:'Short Strike',type:'num',w:100},{k:'prem_recv',label:'Premium Recv/ct',type:'num',w:110},
+      {label:'Total Credit',type:'calc',fmt:'money',calc:d=>has(d.prem_recv)?num(d.prem_recv)*inti(d.contracts,1)*100:null},
+      {k:'exit_date',label:'Exit Date',type:'date',w:120},{k:'exit_prem',label:'Exit Prem/ct',type:'num',w:100},
+      {label:'Realized P&L',type:'calc',fmt:'money',calc:d=>has(d.exit_prem)?(num(d.prem_recv)-num(d.exit_prem))*inti(d.contracts,1)*100:null},
+      {k:'notes',label:'Notes',type:'text',w:130}]},
+};
+// MELOCS — 2-leg call/put verticals; same row shape as Daily (short+long on one row), its own sheet/tab.
+// MELOCS = same 2-leg vertical shape as Daily, plus live mark-to-market P&L
+// (Cur Mark/ct — typeable or auto-filled from tastytrade marks via ⟳ Pull).
+function melocsLivePnl(d){
+  if(!has(d.cur_mark)||!has(d.credit)) return null;
+  const nc=num(d.credit), mag=Math.abs(nc), isCredit=nc>=0, mark=num(d.cur_mark), ct=inti(d.contracts,1);
+  return (isCredit?(mag-mark):(mark-mag))*ct*100;   // credit: keep credit − cost to close; debit: mark − debit paid
+}
+function melocsCaptured(d){
+  if(!has(d.cur_mark)||!has(d.credit)) return null;
+  const nc=num(d.credit), mag=Math.abs(nc), isCredit=nc>=0, mark=num(d.cur_mark);
+  return isCredit?((mag-mark)/(mag||1)):null;
+}
+// Curated MELOCS column set: focused enough to fit one screen. Live P&L columns
+// (Cur Mark/ct, Open P&L (live), % Captured) sit right after Max Profit.
+// Dropped vs Daily: Trade ID, Days In Trade, Width Put/Call, What to Watch,
+// Target Exit, Rolled P&L, Return on Risk — say the word to re-add any.
+(function(){
+  const base=SHEETS.daily.cols, pick=l=>base.find(c=>c.label===l);
+  const order=['Open Date','Expiration','Close Date','Status','Strategy','Ticker','# Contracts',
+    'Short Put','Long Put','Short Call','Long Call','Net Credit/ct','Total Credit / (Debit)','Max Risk','Max Profit'];
+  const cols=order.map(pick).filter(Boolean);
+  cols.push({k:'cur_mark',label:'Cur Mark/ct',type:'num',w:100});
+  cols.push({label:'Open P&L (live)',type:'calc',fmt:'money',calc:melocsLivePnl});
+  cols.push({label:'% Captured',type:'calc',fmt:'pct',calc:melocsCaptured});
+  cols.push(pick('Exit Debit/ct'), pick('Realized P&L'));
+  SHEETS.melocs={host:'melocs_host',title:'MELOCS — 2-Leg Call / Put Verticals',cols:cols.filter(Boolean)};
+})();
+
+// ── Monthly Income SPX — put credit spreads (sold put + bought put) on SPX ─────
+// Same 2-leg vertical shape + live P&L as MELOCS, but put-only (PCS). Lives under Trader Travis.
+(function(){
+  const base=SHEETS.daily.cols, pick=l=>base.find(c=>c.label===l);
+  const order=['Trade ID','Open Date','Expiration','Close Date','Status','Ticker','# Contracts',
+    'Short Put','Long Put','Net Credit/ct','Total Credit / (Debit)','Max Risk','Max Profit'];
+  const cols=order.map(pick).filter(Boolean);
+  cols.push({k:'cur_mark',label:'Cur Mark/ct',type:'num',w:100});
+  cols.push({label:'Open P&L (live)',type:'calc',fmt:'money',calc:melocsLivePnl});
+  cols.push({label:'% Captured',type:'calc',fmt:'pct',calc:melocsCaptured});
+  cols.push(pick('Exit Debit/ct'), pick('Realized P&L'));
+  SHEETS.mispx={host:'mispx_host',title:'Monthly Income SPX — Put Credit Spreads',cols:cols.filter(Boolean)};
+})();
+
+// ── Naked Calls — uncovered short calls (live P&L from Cur Mark/ct) ────────────
+function nakedLivePnl(d){ if(!has(d.cur_mark)||!has(d.prem_sold))return null; return (num(d.prem_sold)-num(d.cur_mark))*inti(d.contracts,1)*100; }
+SHEETS.naked_calls={host:'naked_calls_host',title:'Naked Calls — Uncovered Short Calls',cols:[
+  {k:'date_sold',label:'Date Sold',type:'date',w:120},{k:'exp',label:'Expiration',type:'date',w:120},
+  {label:'DTE',type:'calc',fmt:'num',calc:d=>dTo(d.exp)},
+  {k:'ticker',label:'Ticker',type:'text',w:70},{k:'contracts',label:'# Contracts',type:'num',w:80},
+  {k:'strike',label:'Strike',type:'num',w:90},{k:'prem_sold',label:'Premium Sold/ct',type:'num',w:120},
+  {label:'Total Credit',type:'calc',fmt:'money',calc:d=>has(d.prem_sold)?num(d.prem_sold)*inti(d.contracts,1)*100:null},
+  {k:'cur_mark',label:'Cur Mark/ct',type:'num',w:100},
+  {label:'Open P&L (live)',type:'calc',fmt:'money',calc:nakedLivePnl},
+  {k:'exit_prem',label:'Exit Prem/ct',type:'num',w:100},
+  {label:'Realized P&L',type:'calc',fmt:'money',calc:d=>has(d.exit_prem)?(num(d.prem_sold)-num(d.exit_prem))*inti(d.contracts,1)*100:null},
+  {k:'status',label:'Status',type:'select',options:['Open','Closed'],w:80},
+  {k:'notes',label:'Notes',type:'text',w:150}]};
+
+// ── SPY Shares — stock positions (live P&L from Cur Price/Share) ───────────────
+function shTotalCost(d){ return (has(d.cost)&&has(d.shares))?num(d.cost)*num(d.shares):null; }
+function shCurVal(d){ return (has(d.cur)&&has(d.shares))?num(d.cur)*num(d.shares):null; }
+function shOpenPnl(d){ return (has(d.cur)&&has(d.cost)&&has(d.shares))?(num(d.cur)-num(d.cost))*num(d.shares):null; }
+function shRealized(d){ return (has(d.sale)&&has(d.cost)&&has(d.shares))?(num(d.sale)-num(d.cost))*num(d.shares):null; }
+SHEETS.spy_shares={host:'spy_shares_host',title:'SPY Shares — Stock Positions',cols:[
+  {k:'open',label:'Buy Date',type:'date',w:120},
+  {k:'ticker',label:'Ticker',type:'text',w:70},{k:'shares',label:'# Shares',type:'num',w:90},
+  {k:'cost',label:'Cost / Share',type:'num',w:100},
+  {label:'Total Cost',type:'calc',fmt:'money',calc:shTotalCost},
+  {k:'cur',label:'Cur Price/Share',type:'num',w:120},
+  {label:'Current Value',type:'calc',fmt:'money',calc:shCurVal},
+  {label:'Open P&L (live)',type:'calc',fmt:'money',calc:shOpenPnl},
+  {label:'% Return',type:'calc',fmt:'pct',calc:d=>{const c=shTotalCost(d),p=shOpenPnl(d);return (p!=null&&c)?p/c:null;}},
+  {k:'close',label:'Sell Date',type:'date',w:120},{k:'sale',label:'Sale / Share',type:'num',w:100},
+  {label:'Realized P&L',type:'calc',fmt:'money',calc:shRealized},
+  {k:'status',label:'Status',type:'select',options:['Open','Closed'],w:80},
+  {k:'notes',label:'Notes',type:'text',w:150}]};
+// Yearly Long Term Calls — ONE ROW PER LEG (long call OR long put), matching how tastytrade lists them as two separate trades.
+SHEETS.yltc={host:'yltc_host',title:'Yearly Long Term Calls — Long Calls & Puts',cols:[
+  {k:'trade_id',label:'Trade ID',type:'text',w:80},{k:'open',label:'Open Date',type:'date',w:120},
+  {k:'exp',label:'Expiration',type:'date',w:120},{k:'close',label:'Close Date',type:'date',w:120},
+  {k:'status',label:'Status',type:'select',options:['Open','Closed'],w:80},
+  {label:'Days Held',type:'calc',fmt:'num',calc:d=>dBetween(d.open,d.close)},
+  {k:'ticker',label:'Ticker',type:'text',w:70},
+  {k:'otype',label:'Type',type:'select',options:['C','P'],w:60},
+  {k:'contracts',label:'# Contracts',type:'num',w:70},
+  {k:'strike',label:'Strike',type:'num',w:90},{k:'cost',label:'Cost/ct',type:'num',w:100},
+  {label:'Total Cost',type:'calc',fmt:'money',calc:d=>has(d.cost)?num(d.cost)*inti(d.contracts,1)*100:null},
+  {k:'cur_mark',label:'Cur Mark/ct',type:'num',w:100},
+  {label:'Current Value',type:'calc',fmt:'money',calc:d=>has(d.cur_mark)?num(d.cur_mark)*inti(d.contracts,1)*100:null},
+  {label:'P&L',type:'calc',fmt:'money',calc:d=>has(d.cur_mark)?(num(d.cur_mark)-num(d.cost))*inti(d.contracts,1)*100:null},
+  {label:'Return on Cost',type:'calc',fmt:'pct',calc:d=>{const cost=num(d.cost)*inti(d.contracts,1)*100;const pl=has(d.cur_mark)?(num(d.cur_mark)-num(d.cost))*inti(d.contracts,1)*100:null;return (pl!=null&&cost)?pl/cost:null;}},
+  {label:'What to Watch',type:'calc',hint:true,calc:d=>`Long-dated long ${d.otype==='P'?'put':'call'}${d.ticker?(' on '+d.ticker):''}${has(d.strike)?(' '+d.strike+(d.otype==='P'?'P':'C')):''}. Profits on a large move ${d.otype==='P'?'down':'up'} or a vol spike; bleeds theta slowly. Update Cur Mark to track P&L.`}
+]};
+// SPEC Trades — speculative standalone bought calls (and protective bought puts). Single long option per row.
+SHEETS.spec={host:'spec_host',title:'SPEC Trades — Bought Calls & Puts',cols:[
+  {k:'trade_id',label:'Trade ID',type:'text',w:80},{k:'open',label:'Open Date',type:'date',w:120},
+  {k:'exp',label:'Expiration',type:'date',w:120},{k:'close',label:'Close Date',type:'date',w:120},
+  {k:'status',label:'Status',type:'select',options:['Open','Closed'],w:80},
+  {label:'Days Held',type:'calc',fmt:'num',calc:d=>dBetween(d.open,d.close)},
+  {k:'ticker',label:'Ticker',type:'text',w:70},
+  {k:'otype',label:'Type',type:'select',options:['C','P'],w:60},
+  {k:'contracts',label:'# Contracts',type:'num',w:70},
+  {k:'strike',label:'Strike',type:'num',w:90},{k:'cost',label:'Cost/ct',type:'num',w:100},
+  {label:'Total Cost',type:'calc',fmt:'money',calc:d=>has(d.cost)?num(d.cost)*inti(d.contracts,1)*100:null},
+  {k:'cur_mark',label:'Cur Mark/ct',type:'num',w:100},
+  {label:'Current Value',type:'calc',fmt:'money',calc:d=>has(d.cur_mark)?num(d.cur_mark)*inti(d.contracts,1)*100:null},
+  {label:'Open P&L (live)',type:'calc',fmt:'money',calc:d=>has(d.cur_mark)?(num(d.cur_mark)-num(d.cost))*inti(d.contracts,1)*100:null},
+  {label:'% Return',type:'calc',fmt:'pct',calc:d=>{const cost=num(d.cost)*inti(d.contracts,1)*100;const pl=has(d.cur_mark)?(num(d.cur_mark)-num(d.cost))*inti(d.contracts,1)*100:null;return (pl!=null&&cost)?pl/cost:null;}},
+  {k:'exit_prem',label:'Exit Prem/ct',type:'num',w:100},
+  {label:'Realized P&L',type:'calc',fmt:'money',calc:d=>has(d.exit_prem)?(num(d.exit_prem)-num(d.cost))*inti(d.contracts,1)*100:null},
+  {label:'What to Watch',type:'calc',hint:true,calc:d=>`Speculative long ${d.otype==='P'?'put (downside)':'call (upside)'}${d.ticker?(' on '+d.ticker):''}${has(d.strike)?(' '+d.strike+(d.otype==='P'?'P':'C')):''}. Defined risk = premium paid; profits on a ${d.otype==='P'?'drop':'rally'}. Update Cur Mark to track P&L.`}
+]};
+// ── Hide trade-ENTRY/open date columns from every table (keep only expiration) ──
+// Data stays in the DB (fields are untouched) — this only removes the visible column,
+// so it can be re-added later and calcs that read these fields still work.
+(function(){
+  const HIDE_DATE_KEYS=new Set(['date_purchased','date_sold','purchase','sold_date','open']);
+  Object.values(SHEETS).forEach(s=>{ if(s&&Array.isArray(s.cols)) s.cols=s.cols.filter(c=>!(c&&c.k&&HIDE_DATE_KEYS.has(c.k))); });
+})();
+// ── "What to Watch" auto-hints (per strategy) ─────────────────────────────────
+function hintDaily(d){
+  const t=d.ticker||'the index', strat=d.strategy||'IC';
+  const debit=has(d.credit)&&num(d.credit)<0;
+  const x=dTo(d.exp), u=(x!=null&&x<=1)?' 1 DTE — must happen now.':'';
+  if(strat==='IC') return `Neutral: keep the credit if ${t} finishes between your short put and short call. Theta helps; watch a breakout either side.${u}`;
+  if(strat==='CCS') return debit
+    ? `Bullish debit: needs ${t} UP through your upper strike by exp. Theta works AGAINST you.${u}`
+    : `Bearish/neutral: keep credit if ${t} stays BELOW ${d.sc||'the short call'}. Theta helps; watch a rally toward it.${u}`;
+  if(strat==='PCS') return debit
+    ? `Bearish debit: needs ${t} DOWN through your lower strike by exp. Theta works AGAINST you.${u}`
+    : `Bullish/neutral: keep credit if ${t} stays ABOVE ${d.sp||'the short put'}. Theta helps; watch a drop toward it.${u}`;
+  return '';
+}
+function hintMPLong(d){ return `Protection leg: gains value on a selloff below ${d.strike||'your strike'}. Bleeds theta while held — it's insurance, not income. Watch time left vs. an actual drop.`; }
+function hintMPShort(d){ return `Weekly income: keep the premium if it expires ABOVE ${d.strike||'your strike'}. Theta in your favor. Watch a drop toward/below ${d.strike||'the strike'} — that's where it turns against you.`; }
+function hintLeapLong(d){ return `Long-dated bull: profits as ${d.ticker||'it'} rises above ${d.strike||'your strike'}. Slow theta (LEAP). Watch a sustained downtrend, not daily noise.`; }
+function hintLeapShort(d){ return `Income vs. your LEAP: keep the premium if it stays BELOW ${d.strike||'your strike'} at exp. Theta helps. A rally above caps LEAP upside — consider rolling.`; }
+function hintGILong(d){ return `Crash hedge: pays off on a selloff below ${d.strike||'your strike'}. Decays in calm markets — that's the cost of coverage.`; }
+function hintGIShort(d){ return `Offsets hedge cost: keep the premium if it stays above ${d.strike||'your strike'}. A drop below erodes your net coverage.`; }
+const HINTS={mp_long:hintMPLong,mp_short:hintMPShort,daily:hintDaily,leaps_long:hintLeapLong,leaps_short:hintLeapShort,gi_long:hintGILong,gi_short:hintGIShort};
+HINTS.naked_calls=d=>`Uncovered short call: keep the premium while SPY stays BELOW ${d.strike||'your strike'} at expiration. Risk is open-ended above the strike — watch a rally toward it and roll or close.`;
+Object.keys(SHEETS).forEach(k=>{
+  if(k==='daily'||k==='melocs'||k==='mispx'||k==='yltc'||k==='spec'||k==='spy_shares') return;   // hand-built cols (own 'What to Watch', no Watch For / Notes)
+  const cols=SHEETS[k].cols;
+  const ni=cols.findIndex(c=>c.k==='notes'); if(ni>=0) cols.splice(ni,1);   // drop Notes column
+  cols.push({label:'What to Watch',type:'calc',hint:true,calc:HINTS[k]||(()=>'')});   // keep the auto hint, no editable 'Watch For'
+});
+// Short (sold) legs: max profit at 100% win + a live "current value" tracker.
+const SHORT_PREM={mp_short:'prem_sold', gi_short:'prem_recv', leaps_short:'prem'};
+Object.keys(SHORT_PREM).forEach(k=>{
+  const pf=SHORT_PREM[k], cols=SHEETS[k].cols;
+  let idx=cols.findIndex(c=>c.k==='status');
+  if(idx<0) idx=cols.findIndex(c=>c.label==='What to Watch');
+  if(idx<0) idx=cols.findIndex(c=>c.k==='notes');
+  if(idx<0) idx=cols.length;
+  cols.splice(idx,0,
+    {label:'Max Profit (100%)',type:'calc',fmt:'money',calc:d=>has(d[pf])?num(d[pf])*inti(d.contracts,1)*100:null},
+    {k:'cur_val',label:'Cur Value/ct',type:'num',w:100},
+    {label:'Open P&L (live)',type:'calc',fmt:'money',calc:d=>has(d.cur_val)?(num(d[pf])-num(d.cur_val))*inti(d.contracts,1)*100:null},
+    {label:'% Captured',type:'calc',fmt:'pct',calc:d=>(has(d.cur_val)&&num(d[pf]))?(num(d[pf])-num(d.cur_val))/num(d[pf]):null});
+});
+// Long (protection) legs: add Cur Value/ct + live Open P&L so the long side of a
+// Gap-Insurance / Money-Press spread shows its offsetting gain. Long P&L = (cur − cost)×ct×100.
+const LONG_PREM={mp_long:'prem_bought', gi_long:'prem_paid', leaps_long:'cost'};
+Object.keys(LONG_PREM).forEach(k=>{
+  const cf=LONG_PREM[k], cols=SHEETS[k].cols;
+  let idx=cols.findIndex(c=>c.k==='exit_prem');
+  if(idx<0) idx=cols.findIndex(c=>c.k==='exit_date');
+  if(idx<0) idx=cols.findIndex(c=>c.k==='notes');
+  if(idx<0) idx=cols.length;
+  cols.splice(idx,0,
+    {k:'cur_val',label:'Cur Value/ct',type:'num',w:100},
+    {label:'Open P&L (live)',type:'calc',fmt:'money',calc:d=>has(d.cur_val)?(num(d.cur_val)-num(d[cf]))*inti(d.contracts,1)*100:null},
+    {label:'% Return',type:'calc',fmt:'pct',calc:d=>(has(d.cur_val)&&num(d[cf]))?(num(d.cur_val)-num(d[cf]))/num(d[cf]):null});
+});
+
+const GRID={};       // sheet -> [{id,data}]
+let anRow=null;      // analytics inputs row
+let mpU='XSP';       // active Money Press underlying (existing data is XSP)
+
+const LEG_META = {
+  mp_long:  { closed:d=>d.status==='Closed', realized:d=>(num(d.exit_prem)-num(d.prem_bought))*inti(d.contracts,1)*100, openPrem:d=>num(d.prem_bought)*inti(d.contracts,1)*100, premLabel:'Open Cost' },
+  mp_short: { closed:d=>d.status==='Closed', realized:d=>(num(d.prem_sold)-num(d.exit_prem))*inti(d.contracts,1)*100, openPrem:d=>num(d.prem_sold)*inti(d.contracts,1)*100, premLabel:'Open Credit' },
+  gi_long:  { closed:d=>has(d.exit_date), realized:d=>(num(d.exit_prem)-num(d.prem_paid))*inti(d.contracts,1)*100, openPrem:d=>num(d.prem_paid)*inti(d.contracts,1)*100, premLabel:'Open Cost' },
+  gi_short: { closed:d=>has(d.exit_date), realized:d=>(num(d.prem_recv)-num(d.exit_prem))*inti(d.contracts,1)*100, openPrem:d=>num(d.prem_recv)*inti(d.contracts,1)*100, premLabel:'Open Credit' },
+  leaps_long:  { closed:d=>has(d.close), realized:d=>(num(d.exit_prem)-num(d.cost))*inti(d.contracts,1)*100, openPrem:d=>num(d.cost)*inti(d.contracts,1)*100, premLabel:'Open Cost' },
+  leaps_short: { closed:d=>has(d.close), realized:d=>(num(d.prem)-num(d.exit_prem))*inti(d.contracts,1)*100, openPrem:d=>num(d.prem)*inti(d.contracts,1)*100, premLabel:'Open Credit' },
+  naked_calls: { closed:d=>d.status==='Closed', realized:d=>(num(d.prem_sold)-num(d.exit_prem))*inti(d.contracts,1)*100, openPrem:d=>num(d.prem_sold)*inti(d.contracts,1)*100, premLabel:'Open Credit' },
+  spy_shares:  { closed:d=>d.status==='Closed'||has(d.close), realized:d=>(num(d.sale)-num(d.cost))*num(d.shares), openPrem:d=>num(d.cost)*num(d.shares), premLabel:'Cost Basis' },
+  yltc:        { closed:d=>d.status==='Closed'||has(d.close), realized:d=>(num(d.exit_prem)-num(d.cost))*inti(d.contracts,1)*100, openPrem:d=>num(d.cost)*inti(d.contracts,1)*100, premLabel:'Open Cost' },
+  spec:        { closed:d=>d.status==='Closed'||has(d.close), realized:d=>(num(d.exit_prem)-num(d.cost))*inti(d.contracts,1)*100, openPrem:d=>num(d.cost)*inti(d.contracts,1)*100, premLabel:'Open Cost' },
+};
+function rowsFor(sheet){
+  let rows=GRID[sheet]||[];
+  if(sheet==='mp_long'||sheet==='mp_short') rows=rows.filter(r=>(r.data.underlying||'XSP')===mpU);
+  const M=LEG_META[sheet];
+  if(M){
+    rows=rows.slice().sort((a,b)=>{
+      const ca=M.closed(a.data)?1:0, cb=M.closed(b.data)?1:0;
+      if(ca!==cb) return ca-cb;                                  // open first, closed at bottom
+      return (new Date(a.data.exp||'2999')) - (new Date(b.data.exp||'2999'));  // then by expiration
+    });
+  } else if(sheet==='daily'||sheet==='melocs'||sheet==='mispx'||sheet==='yltc'||sheet==='spec'){
+    rows=rows.slice().sort((a,b)=>{
+      const ca=isRowClosed(sheet,a.data)?1:0, cb=isRowClosed(sheet,b.data)?1:0;
+      if(ca!==cb) return ca-cb;                                  // open first, closed at bottom
+      return (new Date(a.data.exp||'2999')) - (new Date(b.data.exp||'2999'));  // then by expiration
+    });
+  }
+  return rows;
+}
+function renderMPSubtabs(){
+  const el=$('mp_subtabs'); if(!el) return;
+  el.innerHTML=['XSP','SPX'].map(u=>`<button class="tab-btn ${u===mpU?'active':''}" onclick="switchMPU('${u}')">${u}</button>`).join('');
+}
+function switchMPU(u){ mpU=u; renderMPSubtabs(); renderGrid('mp_long'); renderGrid('mp_short'); }
+
+// Closed/rolled rows are hidden by default; this reveals or re-hides them per grid.
+function toggleClosedRows(sheet,btn){
+  const host=$(SHEETS[sheet]&&SHEETS[sheet].host); if(!host) return;
+  const tbl=host.querySelector('table.grid'); if(!tbl) return;
+  const show=tbl.classList.toggle('showclosed');
+  const n=host.querySelectorAll('tr.rowclosed').length;
+  btn.textContent=(show?'▾ Hide ':'▸ Show ')+n+' closed';
+}
+function renderGrid(sheet){
+  const cfg=SHEETS[sheet], host=$(cfg.host), rows=rowsFor(sheet), M=LEG_META[sheet];
+  const fit=(sheet==='mp_long'||sheet==='mp_short');   // Money Press: size columns to content (except What to Watch)
+  let totals='';
+  if(M){
+    const openRows=rows.filter(r=>!M.closed(r.data)), closedRows=rows.filter(r=>M.closed(r.data));
+    const realized=closedRows.reduce((s,r)=>s+(M.realized(r.data)||0),0);
+    const openP=openRows.reduce((s,r)=>s+(M.openPrem(r.data)||0),0);
+    totals=`<div class="legtotals">`+
+      `<span><label>${M.premLabel} (open)</label><b>${fMoney(openP)}</b></span>`+
+      `<span><label>Realized P&L (closed / rolled)</label><b class="${realized>=0?'up':'dn'}">${fMoney(realized)}</b></span>`+
+      `<span><label>Open / Closed legs</label><b>${openRows.length} / ${closedRows.length}</b></span>`+
+      `</div>`;
+  }
+  let badge='';
+  if(sheet==='mp_long'||sheet==='mp_short'){
+    const nct=rows.filter(r=>!isRowClosed(sheet,r.data)).reduce((s,r)=>s+inti(r.data.contracts,1),0);
+    badge=`<div class="openbadge ${sheet==='mp_long'?'long':'short'}"><span class="ob-num">${nct}</span><span class="ob-lbl">${sheet==='mp_long'?'Longs':'Shorts'} Open</span></div>`;
+  }
+  const closedN=rows.filter(r=>isRowClosed(sheet,r.data)).length;
+  const closedToggle=closedN?`<button class="closedtoggle" onclick="toggleClosedRows('${sheet}',this)">▸ Show ${closedN} closed</button>`:'';
+  let h=`<div class="grid-hdr"><h4>${cfg.title}</h4><button class="btn-primary" onclick="addRow('${sheet}')">+ Add Row</button>${badge}${closedToggle}</div>`+totals+`<div class="tbl-wrap"><table class="grid${fit?' fit':''}"><thead><tr>`;
+  cfg.cols.forEach(c=>h+=`<th>${c.label}</th>`); h+='<th></th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    const isC=M?M.closed(r.data):isRowClosed(sheet,r.data);
+    h+='<tr'+(isC?' class="rowclosed"':'')+'>';
+    cfg.cols.forEach((c,ci)=>{
+      if(c.type==='calc'){ h+=`<td class="calc${c.hint?' hintcell':''}" id="cell_${r.id}_${ci}">—</td>`; }
+      else if(c.type==='select'){
+        // Status reflects closed-state even for rows closed by close date / exit before this dropdown existed.
+        const sv=(c.k==='status'&&!r.data.status)?(isC?'Closed':'Open'):r.data[c.k];
+        h+=`<td><select class="gsel" data-sheet="${sheet}" data-id="${r.id}" data-k="${c.k}">`+
+           c.options.map(o=>`<option ${sv===o?'selected':''}>${o}</option>`).join('')+`</select></td>`;
+      } else {
+        const t=c.type==='date'?'date':c.type==='num'?'number':'text';
+        const raw=(r.data[c.k]!=null?String(r.data[c.k]):'');
+        const v=raw.replace(/"/g,'&quot;');
+        const st = fit
+          ? (c.type==='date' ? 'width:104px' : `width:calc(${Math.max(raw.length,3)}ch + 14px);min-width:0`)   // content chars + padding room; headers wrap
+          : (c.w?`min-width:${Math.max(42,c.w-20)}px`:'');
+        h+=`<td><input class="ginp" data-sheet="${sheet}" data-id="${r.id}" data-k="${c.k}" type="${t}" ${c.type==='num'?'step="0.01"':''} value="${v}" style="${st}"></td>`;
+      }
+    });
+    const LEGSH=['mp_long','mp_short','gi_long','gi_short','leaps_long','leaps_short','naked_calls','yltc','spec'];
+    let actBtns='';
+    if(sheet==='daily'){ actBtns=`<button class="btn-roll" title="Roll this spread" onclick="rollRow('daily','${r.id}')">↻</button> `; }
+    else if(LEGSH.includes(sheet)){ actBtns=`<button class="btn-roll" title="Roll (partial OK)" onclick="openAct('${sheet}','${r.id}','roll')">↻</button> <button class="btn-close2" title="Close (partial OK)" onclick="openAct('${sheet}','${r.id}','close')">✓</button> `; }
+    else if(sheet==='spy_shares'){ actBtns=`<button class="btn-close2" title="Sell shares (partial OK)" onclick="openAct('spy_shares','${r.id}','sell')">Sell</button> `; }
+    h+=`<td style="white-space:nowrap">${actBtns}<button class="btn-red" onclick="delRow('${sheet}','${r.id}')">✕</button></td></tr>`;
+  });
+  h+='</tbody></table></div>';
+  host.innerHTML=h; recalcGrid(sheet);
+  if(sheet==='gi_long'||sheet==='gi_short') renderGICover();
+  if(sheet==='daily') renderDailyMonitor();
+}
+// ── Open Spread Monitor (Daily) — re-pairs split legs into spreads to follow P&L ──
+// Daily rows are combined spreads/ICs (short+long legs on one row). One card per open row.
+function occParse(sym){ sym=String(sym||''); if(sym.length<21) return null; return {cp:sym[12], strike:parseInt(sym.slice(13,21))/1000}; }
+// ── Yearly LT Calls: fill Cur Call/Put from live tastytrade option marks ──────
+// OCC symbol = 6-char root + YYMMDD + C/P + 8-digit strike(×1000). Parse the full key.
+function occFull(sym){ sym=String(sym||'').trim(); if(sym.length<21) return null;
+  return {root:sym.slice(0,6).trim().toUpperCase(), ymd:sym.slice(6,12), cp:sym[12], strike:parseInt(sym.slice(13,21))/1000}; }
+function expToYmd(e){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(e||'')); return m?(m[1].slice(2)+m[2]+m[3]):null; }
+// Find the live mid for one leg. Match on C/P + strike + expiration; prefer the same
+// ticker root, and if exactly one option matches without a root match, use it.
+function markFor(M,ticker,ymd,cp,strike){
+  const cands=[];
+  for(const k in M){ const o=occFull(k); if(!o||o.cp!==cp) continue;
+    if(Math.abs(o.strike-num(strike))>0.001) continue;
+    if(ymd && o.ymd!==ymd) continue;
+    cands.push({o,mid:(M[k]&&M[k].mid!=null)?M[k].mid:null}); }
+  if(!cands.length) return null;
+  const T=String(ticker||'').toUpperCase();
+  const pick=cands.find(c=>c.o.root===T)||(cands.length===1?cands[0]:null);
+  return pick?pick.mid:null;
+}
+function applyMarksToYLTC(M){
+  let n=0;
+  (GRID.yltc||[]).forEach(r=>{
+    const d=r.data; if(d.close||d.status==='Closed') return;   // open legs only
+    if(!has(d.strike)||!d.otype) return;
+    const ymd=expToYmd(d.exp);
+    const m=markFor(M,d.ticker,ymd,d.otype==='P'?'P':'C',d.strike);
+    if(m!=null){ d.cur_mark=Math.round(m*100)/100; scheduleSave(r.id,d); n++; }
+  });
+  if(n) renderGrid('yltc');   // refresh Cur Mark inputs + P&L cells
+  return n;
+}
+// SPEC Trades — same as YLTC: single long option per row, match by strike+exp+type.
+function applyMarksToSpec(M){
+  let n=0;
+  (GRID.spec||[]).forEach(r=>{
+    const d=r.data; if(d.close||d.status==='Closed') return;
+    if(!has(d.strike)||!d.otype) return;
+    const m=markFor(M,d.ticker,expToYmd(d.exp),d.otype==='P'?'P':'C',d.strike);
+    if(m!=null){ d.cur_mark=Math.round(m*100)/100; scheduleSave(r.id,d); n++; }
+  });
+  if(n) renderGrid('spec');
+  return n;
+}
+// Mid for one spread leg: prefer the imported OCC symbol (_tsym); if the row was
+// hand-entered (no _tsym, or a leg symbol isn't in the feed), fall back to matching
+// live marks by ticker + expiration + strike + C/P — same as the Yearly LT Calls matcher.
+function legMid(M,parts,midOf,ticker,exp,cp,strike){
+  for(const s of parts){ const p=occParse(s); if(p&&p.cp===cp&&Math.abs(p.strike-num(strike))<0.001){ const m=midOf(s); if(m!=null) return m; } }
+  const ymd=expToYmd(exp); if(!ymd) return null;   // no reliable fallback without an expiration
+  return markFor(M,ticker,ymd,cp,strike);
+}
+// MELOCS/MISPX: fill Cur Mark/ct (net debit to close the vertical) from live marks →
+// drives Open P&L (live). Matches by imported _tsym, else by ticker+expiration+strike.
+function applyMarksToSpreadSheet(M,sheet){
+  const midOf=t=>{ const q=M[String(t||'').trim()]; return q&&q.mid!=null?q.mid:null; };
+  let n=0;
+  (GRID[sheet]||[]).forEach(r=>{
+    const d=r.data; if(has(d.close)||d.status==='Closed') return;
+    const parts=String(d._tsym||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const midAt=(cp,strike)=>legMid(M,parts,midOf,d.ticker,d.exp,cp,strike);
+    let net=0, any=false;
+    if(has(d.sp)&&has(d.lp)){ const a=midAt('P',d.sp), b=midAt('P',d.lp); if(a!=null&&b!=null){ net+=(a-b); any=true; } }
+    if(has(d.sc)&&has(d.lc)){ const a=midAt('C',d.sc), b=midAt('C',d.lc); if(a!=null&&b!=null){ net+=(a-b); any=true; } }
+    if(any){ d.cur_mark=Math.round(net*100)/100; scheduleSave(r.id,d); n++; }
+  });
+  if(n) renderGrid(sheet);
+  return n;
+}
+function applyMarksToMELOCS(M){ return applyMarksToSpreadSheet(M,'melocs'); }
+function applyMarksToMISPX(M){ return applyMarksToSpreadSheet(M,'mispx'); }
+// Naked Calls: single short-call leg → Cur Mark/ct straight from its live mid.
+function applyMarksToNaked(M){
+  let n=0;
+  (GRID.naked_calls||[]).forEach(r=>{
+    const d=r.data; if(d.status==='Closed') return;
+    const q=M[String(d._tsym||'').trim()];
+    if(q&&q.mid!=null){ d.cur_mark=Math.round(q.mid*100)/100; scheduleSave(r.id,d); n++; }
+  });
+  if(n) renderGrid('naked_calls');
+  return n;
+}
+// Short (sold) legs — Money Press & Gap Insurance short puts, LEAP short calls:
+// single leg → fill Cur Value/ct from the live mid so "Open P&L (live)" tracks the
+// unrealized gain on the credit. Matches by imported _tsym, else ticker+expiration+strike.
+function applyMarksToShort(M,sheet,cp){
+  const midOf=t=>{ const q=M[String(t||'').trim()]; return q&&q.mid!=null?q.mid:null; };
+  let n=0;
+  (GRID[sheet]||[]).forEach(r=>{
+    const d=r.data; if(d.status==='Closed'||has(d.exit_prem)||has(d.exit_date)) return;   // open legs only
+    if(!has(d.strike)) return;
+    let m=midOf(d._tsym);
+    if(m==null){ const ticker=d.underlying||d.ticker||mpU; m=markFor(M,ticker,expToYmd(d.exp),cp,d.strike); }
+    if(m!=null){ d.cur_val=Math.round(m*100)/100; scheduleSave(r.id,d); n++; }
+  });
+  if(n) renderGrid(sheet);
+  return n;
+}
+// SPY Shares: fill Cur Price/Share from the live stock price (/api/price/<ticker>) →
+// drives Current Value, Open P&L (live) and % Return.
+async function applySharePrices(){
+  const rows=(GRID.spy_shares||[]).filter(r=>r.data.status!=='Closed' && !r.data.close);
+  if(!rows.length) return 0;
+  const tickers=[...new Set(rows.map(r=>(r.data.ticker||'SPY').toUpperCase()))];
+  const prices={};
+  await Promise.all(tickers.map(async t=>{
+    try{ const j=await fetch('/api/price/'+encodeURIComponent(t),{cache:'no-store'}).then(r=>r.json());
+         if(j&&j.price!=null) prices[t]=j.price; }catch(_){}
+  }));
+  let n=0;
+  rows.forEach(r=>{ const t=(r.data.ticker||'SPY').toUpperCase();
+    if(prices[t]!=null){ r.data.cur=Math.round(prices[t]*100)/100; scheduleSave(r.id,r.data); n++; } });
+  if(n) renderGrid('spy_shares');
+  return n;
+}
+function dailyTag(d){
+  const hasP=has(d.sp)||has(d.lp), hasC=has(d.sc)||has(d.lc);
+  const k=v=>has(v)?v:'?';
+  if(d.strategy==='IC'||(hasP&&hasC)) return k(d.sp)+'/'+k(d.lp)+'P–'+k(d.sc)+'/'+k(d.lc)+'C IC';
+  if(d.strategy==='CCS'||(hasC&&!hasP)) return k(d.sc)+'/'+k(d.lc)+' CCS';
+  return k(d.sp)+'/'+k(d.lp)+' PCS';
+}
+function dailySpreadInfo(r){
+  const d=r.data, hasP=has(d.sp)||has(d.lp), hasC=has(d.sc)||has(d.lc);
+  if(!hasP&&!hasC) return null;
+  return {row:r, id:r.id, strat:(d.strategy||((hasP&&hasC)?'IC':(hasC?'CCS':'PCS'))),
+          ticker:(d.ticker||''), exp:(d.exp||''),
+          sp:has(d.sp)?num(d.sp):null, lp:has(d.lp)?num(d.lp):null,
+          sc:has(d.sc)?num(d.sc):null, lc:has(d.lc)?num(d.lc):null,
+          ct:inti(d.contracts,1), netCredit:num(d.credit)};
+}
+function dailySpreads(){ return (GRID.daily||[]).filter(r=>!isRowClosed('daily',r.data)).map(dailySpreadInfo).filter(Boolean); }
+function renderDailyMonitor(){
+  const host=$('daily_monitor'); if(!host) return;
+  const spreads=dailySpreads();
+  if(!spreads.length){ host.innerHTML=''; return; }
+  const mapped=!!TASTY_MAP[acct];
+  let h='<h4>Open Spread Monitor'+(mapped?' <button id="pullmarks_btn" class="btn-mini" onclick="pullMarks()" title="Fetch live marks from tastytrade and fill P&L">⟳ Pull Marks</button>':'')+'</h4>';
+  spreads.forEach(sp=>h+=spreadCard(sp));
+  host.innerHTML=h;
+}
+async function pullMarks(){
+  const numAcct=TASTY_MAP[acct]; if(!numAcct){ toast('No tastytrade account mapped'); return; }
+  const btn=$('pullmarks_btn'); if(btn){ btn.disabled=true; btn.textContent='⟳ Pulling…'; }
+  try{
+    const r=await fetch('/api/tasty/marks/'+numAcct).then(r=>r.json());
+    if(r.error){ toast('Marks: '+r.error); }
+    else{
+      const M=r.marks||{};
+      const midOf=t=>{ const q=M[String(t||'').trim()]; return q&&q.mid!=null?q.mid:null; };
+      const spreads=dailySpreads();
+      let n=0;
+      spreads.forEach(sp=>{
+        const parts=String(sp.row.data._tsym||'').split(',').map(s=>s.trim()).filter(Boolean);
+        const midAt=(cp,strike)=>legMid(M,parts,midOf,sp.ticker,sp.exp,cp,strike);
+        let net=0, any=false;
+        if(sp.sp!=null&&sp.lp!=null){ const a=midAt('P',sp.sp), b=midAt('P',sp.lp); if(a!=null&&b!=null){ net+=(a-b); any=true; } }
+        if(sp.sc!=null&&sp.lc!=null){ const a=midAt('C',sp.sc), b=midAt('C',sp.lc); if(a!=null&&b!=null){ net+=(a-b); any=true; } }
+        if(!any && parts.length===1){ const m=midOf(parts[0]); if(m!=null){ net=m; any=true; } }
+        if(any){ sp.row.data.cur_mark=Math.round(net*100)/100; scheduleSave(sp.id,sp.row.data); n++; }
+      });
+      renderDailyMonitor();
+      toast(n?('Pulled live marks for '+n+' spread(s)'):'No live marks returned — market may be closed');
+    }
+  }catch(e){ toast('Pull marks failed: '+e.message); }
+  const b2=$('pullmarks_btn'); if(b2){ b2.disabled=false; b2.textContent='⟳ Pull Marks'; }
+}
+function spreadCard(sp){
+  const d=sp.row.data, ct=sp.ct, nc=sp.netCredit, isCredit=nc>=0, mag=Math.abs(nc);
+  const maxProfit=ddMaxProfit(d), maxRisk=ddMaxRisk(d);
+  const dte=dTo(sp.exp), tkr=sp.ticker||'the index', isIC=sp.strat==='IC', isCall=sp.strat==='CCS';
+  let beTxt, guard;
+  if(isIC){
+    const lo=(sp.sp!=null)?(sp.sp-mag):null, hi=(sp.sc!=null)?(sp.sc+mag):null;
+    beTxt=(lo!=null&&hi!=null)?(lo.toFixed(2)+' / '+hi.toFixed(2)):'—';
+    guard=`${tkr} stays BETWEEN ${sp.sp} and ${sp.sc} (BE ${beTxt})`;
+  } else if(isCall){
+    const be=(sp.sc!=null)?(isCredit?sp.sc+mag:(sp.lc!=null?sp.lc+mag:null)):null;
+    beTxt=be!=null?be.toFixed(2):'—'; guard=`${tkr} stays BELOW ${sp.sc} (BE ${beTxt})`;
+  } else {
+    const be=(sp.sp!=null)?(isCredit?sp.sp-mag:(sp.lp!=null?sp.lp-mag:null)):null;
+    beTxt=be!=null?be.toFixed(2):'—'; guard=`${tkr} stays ABOVE ${sp.sp} (BE ${beTxt})`;
+  }
+  const markRaw=d.cur_mark, hasMark=has(markRaw), mark=num(markRaw);
+  let pnl=null,cap=null;
+  if(hasMark){ pnl=(isCredit?(mag-mark):(mark-mag))*ct*100; cap=isCredit?(mag-mark)/(mag||1):(maxProfit?pnl/maxProfit:null); }
+  const tgt=isCredit?(mag*0.5):null;
+  let hint;
+  if(!hasMark) hint=`Keep the credit while ${guard}. Type or ⟳ Pull the current mark to track P&L & % captured.`;
+  else { const pct=Math.round((cap||0)*100);
+    if(isCredit){
+      if(cap>=0.5) hint=`✓ Captured ${pct}% — at/over a 50% profit target. Closing now locks ${fMoney(pnl)}.`;
+      else if(pnl>=0) hint=`Up ${fMoney(pnl)} (${pct}% of max) — ${guard}. 50% target ≈ buy back at ${tgt.toFixed(2)}.`;
+      else hint=`Down ${fMoney(pnl)} — moved against you; watch that ${guard}. Decide: close or roll${dte!=null&&dte<=1?' — expires very soon':''}.`;
+    } else hint=`${pnl>=0?'Up':'Down'} ${fMoney(pnl)} of ${fMoney(maxProfit==null?0:maxProfit)} max.`;
+  }
+  return `<div class="spcard">`+
+    `<span class="sp-tag">${sp.ticker} ${dailyTag(d)} ×${ct}</span>`+
+    `<span class="m"><label>Net Cr/ct</label><b>${nc.toFixed(2)}</b></span>`+
+    `<span class="m"><label>Max Profit</label><b class="up">${maxProfit==null?'—':fMoney(maxProfit)}</b></span>`+
+    `<span class="m"><label>Max Risk</label><b class="dn">${maxRisk==null?'—':fMoney(maxRisk)}</b></span>`+
+    `<span class="m"><label>Breakeven${isIC?'s':''}</label><b>${beTxt}</b></span>`+
+    `<span class="m"><label>DTE</label><b>${dte==null?'—':dte+'d'}</b></span>`+
+    `<span class="m"><label>Cur Mark/ct</label><input class="markin" type="number" step="0.01" placeholder="0.00" value="${hasMark?mark:''}" onchange="setSpreadMark('${sp.id}',this.value)"></span>`+
+    `<span class="m"><label>Open P&L</label><b class="${pnl==null?'':pnl>=0?'up':'dn'}">${pnl==null?'—':fMoney(pnl)}</b></span>`+
+    `<span class="m"><label>% Captured</label><b>${cap==null?'—':Math.round(cap*100)+'%'}</b></span>`+
+    `<button class="btn-mini btn-close" onclick="closeSpreadPrompt('${sp.id}')" title="Log the close of this spread">✓ Close</button>`+
+    `<span class="sp-hint">${hint}</span>`+
+    spreadLegLines(sp)+
+    `</div>`;
+}
+// Individual leg breakdown for a spread — one line per leg (short = red, long = green).
+// The spread's shared numbers stay in the header above; legs show side/strike/type/qty.
+function spreadLegLines(sp){
+  const ct=sp.ct;
+  const line=(strike,cp,dir)=>`<span class="spleg ${dir}">${dir==='short'?'SHORT':'LONG'} ${strike} ${cp} ×${ct}</span>`;
+  let legs='';
+  if(sp.sp!=null) legs+=line(sp.sp,'Put','short');   // short put
+  if(sp.lp!=null) legs+=line(sp.lp,'Put','long');                                       // long put
+  if(sp.sc!=null) legs+=line(sp.sc,'Call','short');                                     // short call
+  if(sp.lc!=null) legs+=line(sp.lc,'Call','long');                                      // long call
+  return legs?`<div class="splegs">${legs}</div>`:'';
+}
+function closeSpreadPrompt(id){
+  const sp=dailySpreads().find(s=>s.id===id); if(!sp){ toast('Spread not found — refresh'); return; }
+  const mag=Math.abs(sp.netCredit), isCredit=sp.netCredit>=0, d=sp.row.data;
+  const def=has(d.cur_mark)?d.cur_mark:'';
+  const tag=sp.ticker+' '+dailyTag(d);
+  const msg=isCredit
+    ? 'Close '+tag+' — net DEBIT you PAID per contract to close (buy it back).\nReceived a credit to close instead? enter it negative:'
+    : 'Close '+tag+' — net CREDIT you RECEIVED per contract to close.\nPaid a debit to close instead? enter it negative:';
+  const v=prompt(msg, def); if(v===null) return;
+  const px=parseFloat(v); if(isNaN(px)){ toast('Enter a number'); return; }
+  const pnl=Math.round((isCredit?(mag-px):(px-mag))*sp.ct*100*100)/100;
+  d.close=today(); d.close_pnl=pnl; d.exit_net=px; scheduleSave(sp.id,d);
+  renderGrid('daily');
+  toast('Closed '+tag+' — realized '+fMoney(pnl));
+}
+function setSpreadMark(id,v){
+  const r=(GRID.daily||[]).find(x=>x.id===id); if(!r) return;
+  r.data.cur_mark=v; scheduleSave(id,r.data); renderDailyMonitor();
+}
+function recalcGrid(sheet){
+  const cfg=SHEETS[sheet], rows=rowsFor(sheet); let cum=0;
+  rows.forEach(r=>{
+    cfg.cols.forEach((c,ci)=>{
+      if(c.type!=='calc') return;
+      const cell=$(`cell_${r.id}_${ci}`); if(!cell) return;
+      let val;
+      if(c.cum){ cum+=(cfg.profitFn?cfg.profitFn(r.data):0)||0; val=cum; }
+      else val=c.calc(r.data);
+      if(c.hint){ cell.textContent=(val==null||val==='')?'—':val; cell.className='calc hintcell'; }
+      else { cell.textContent=fmtCalc(val,c.fmt); cell.className='calc '+clsOf(val); }
+    });
+  });
+}
+let _saveTimers={};
+function scheduleSave(id,data){ clearTimeout(_saveTimers[id]); _saveTimers[id]=setTimeout(()=>{
+  fetch('/api/diamonds-test/row/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({data})}).then(()=>toast('Saved ✓'));
+},500); }
+document.addEventListener('input',e=>{
+  const el=e.target; if(!el.classList.contains('ginp')&&!el.classList.contains('gsel'))return;
+  const {sheet,id,k}=el.dataset; const row=(GRID[sheet]||[]).find(r=>r.id===id); if(!row)return;
+  row.data[k]=el.value; recalcGrid(sheet); scheduleSave(id,row.data);
+  if(sheet==='gi_long'||sheet==='gi_short') renderGICover();
+  if(sheet==='daily') renderDailyMonitor();
+});
+// On commit of a close-state field, re-render the grid so closed rows re-sort to the
+// bottom and the header realized-P&L total refreshes (recalcGrid alone does neither).
+document.addEventListener('change',e=>{
+  const el=e.target; if(!el.classList.contains('ginp')&&!el.classList.contains('gsel'))return;
+  const {sheet,id,k}=el.dataset; if(!sheet)return;
+  const isDaily=(sheet==='daily'||sheet==='melocs'||sheet==='mispx'||sheet==='yltc'||sheet==='spec');
+  if(!LEG_META[sheet]&&!isDaily)return;
+  if(!['status','close','exit_date','exit_prem','exit_debit'].includes(k))return;
+  // Marking a combined-row trade Closed with no close date stamps today so it drops out of the monitor.
+  if(isDaily&&k==='status'){
+    const row=(GRID[sheet]||[]).find(r=>r.id===id);
+    if(row&&el.value==='Closed'&&!has(row.data.close)){ row.data.close=today(); scheduleSave(id,row.data); }
+  }
+  renderGrid(sheet);
+  if(sheet==='daily') renderDailyMonitor();
+});
+async function addRow(sheet){
+  const def=sheet.startsWith('mp')?{status:'Open',underlying:mpU}:sheet==='daily'?{strategy:'IC',ticker:'SPX'}:sheet==='mispx'?{strategy:'PCS',ticker:'SPX',status:'Open'}:(sheet==='yltc'||sheet==='spec')?{ticker:'SPY',status:'Open',otype:'C',contracts:1}:(sheet==='spy_shares'||sheet==='naked_calls')?{ticker:'SPY',status:'Open'}:{ticker:'SPX'};
+  const r=await fetch('/api/diamonds-test/'+sheet,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:def,account:acct})}).then(r=>r.json());
+  (GRID[sheet]=GRID[sheet]||[]).push({id:r.id,data:def}); renderGrid(sheet);
+}
+async function delRow(sheet,id){
+  if(!confirm('Delete this row?'))return;
+  await fetch('/api/diamonds-test/row/'+id,{method:'DELETE'});
+  GRID[sheet]=(GRID[sheet]||[]).filter(r=>r.id!==id); renderGrid(sheet);
+}
+async function rollRow(sheet,id){
+  const src=(GRID[sheet]||[]).find(r=>r.id===id); if(!src) return;
+  const d=src.data;
+  if(sheet==='daily'){
+    // Option A — evolve the same row; panel captures roll credit + new expiration + new strikes.
+    $('dd_roll_id').value=id;
+    const legs=[d.sp,d.lp,d.sc,d.lc].filter(x=>x!=null&&x!=='').join('/')||'?';
+    $('dd_roll_from').textContent='(from '+legs+(d.exp?(' exp '+d.exp):'')+', net '+(num(d.credit)||0).toFixed(2)+')';
+    $('dd_roll_credit').value='';
+    $('dd_roll_exp').value=(d.exp||'').slice(0,10);
+    $('dd_roll_sp').value=d.sp??''; $('dd_roll_lp').value=d.lp??''; $('dd_roll_sc').value=d.sc??''; $('dd_roll_lc').value=d.lc??'';
+    $('dd_rollpanel').style.display='block';
+    $('dd_rollpanel').scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  // Leg grids (Money Press / Gap Insurance / Leaps): close the old leg (record buyback), open a fresh one.
+  const bb=prompt('Roll — exit premium per contract to buy back / close the leg you\'re rolling out\n(records its realized P&L; leave blank to fill in later):');
+  if(bb===null) return;   // cancelled
+  const c={};
+  ['opt_type','ticker','underlying','contracts','strike','prem_bought','prem_sold','prem_paid','prem_recv','prem','cost','trade_id','leap_conn'].forEach(k=>{ if(d[k]!=null&&d[k]!=='') c[k]=d[k]; });
+  if('status' in d) c.status='Open';
+  c.notes='Rolled from '+(has(d.strike)?d.strike:'?')+(d.exp?(' (exp '+d.exp+')'):'');
+  if(bb!==''&&!isNaN(parseFloat(bb))) d.exit_prem=parseFloat(bb);   // realized locks in on the closed leg
+  if(sheet.startsWith('mp')) d.status='Closed';
+  else if(sheet.startsWith('gi')) d.exit_date=today();
+  else d.close=today();
+  scheduleSave(id,d);
+  const r=await fetch('/api/diamonds-test/'+sheet,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:c,account:acct})}).then(r=>r.json());
+  (GRID[sheet]=GRID[sheet]||[]).push({id:r.id,data:c}); renderGrid(sheet);
+  toast('Rolled ↻ — old leg closed & realized P&L logged; new leg opened below');
+}
+
+// ── Partial close / roll / share-sale ─────────────────────────────────────────
+// Act on PART of a position: the closed/rolled/sold portion books its P&L in a new
+// closed row; the remainder stays open. All-or-nothing when qty ≥ the full size.
+const CLOSE_CFG={
+  mp_long:{qty:'contracts',exitK:'exit_prem',close:d=>{d.status='Closed';}},
+  mp_short:{qty:'contracts',exitK:'exit_prem',close:d=>{d.status='Closed';}},
+  gi_long:{qty:'contracts',exitK:'exit_prem',close:d=>{d.exit_date=today();}},
+  gi_short:{qty:'contracts',exitK:'exit_prem',close:d=>{d.exit_date=today();}},
+  leaps_long:{qty:'contracts',exitK:'exit_prem',close:d=>{d.close=today();}},
+  leaps_short:{qty:'contracts',exitK:'exit_prem',close:d=>{d.close=today();}},
+  naked_calls:{qty:'contracts',exitK:'exit_prem',close:d=>{d.status='Closed';}},
+  spy_shares:{qty:'shares',exitK:'sale',close:d=>{d.close=today();d.status='Closed';}},
+  yltc:{qty:'contracts',exitK:'exit_prem',close:d=>{d.status='Closed';d.close=today();}},
+  spec:{qty:'contracts',exitK:'exit_prem',close:d=>{d.status='Closed';d.close=today();}},
+};
+const DATE_KEY={mp_long:'date_purchased',mp_short:'date_sold',gi_long:'purchase',gi_short:'sold_date',leaps_long:'open',leaps_short:'open',naked_calls:'date_sold',yltc:'open',spec:'open'};
+const ENTRY_K ={mp_long:'prem_bought',mp_short:'prem_sold',gi_long:'prem_paid',gi_short:'prem_recv',leaps_long:'cost',leaps_short:'prem',naked_calls:'prem_sold',yltc:'cost',spec:'cost'};
+async function doPartialClose(sheet,id,qtyToClose,exitPx){
+  const cfg=CLOSE_CFG[sheet]; if(!cfg) return;
+  const src=(GRID[sheet]||[]).find(r=>r.id===id); if(!src) return;
+  const d=src.data;
+  const total=cfg.qty==='shares'?num(d.shares):inti(d.contracts,1);
+  const n=Math.min(qtyToClose,total);
+  if(n<=0) return;
+  if(n>=total){                         // close the whole row
+    if(exitPx!=null) d[cfg.exitK]=exitPx;
+    cfg.close(d); scheduleSave(id,d); renderGrid(sheet); return;
+  }
+  const c={...d};                       // snapshot the closed portion before shrinking the source
+  d[cfg.qty]=total-n; scheduleSave(id,d);        // source stays open with the remainder
+  c[cfg.qty]=n;
+  if(exitPx!=null) c[cfg.exitK]=exitPx;
+  c.notes=((c.notes||'').trim()?c.notes+' · ':'')+'Closed '+n+' of '+total;
+  cfg.close(c);
+  const r=await fetch('/api/diamonds-test/'+sheet,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:c,account:acct})}).then(r=>r.json());
+  (GRID[sheet]=GRID[sheet]||[]).push({id:r.id,data:c}); renderGrid(sheet);
+}
+async function doPartialRoll(sheet,id,o){
+  const src=(GRID[sheet]||[]).find(r=>r.id===id); if(!src) return;
+  const s={...src.data};                          // identity snapshot
+  await doPartialClose(sheet,id,o.qty,o.buyback); // close the rolled qty at the buyback price
+  const nd={};
+  ['ticker','underlying','opt_type','leap_conn','otype'].forEach(k=>{ if(s[k]!=null&&s[k]!=='') nd[k]=s[k]; });
+  nd[DATE_KEY[sheet]]=today();
+  nd.exp=o.newExp||s.exp;
+  nd.strike=(o.newStrike!=null&&o.newStrike!=='')?o.newStrike:s.strike;
+  nd.contracts=o.qty;
+  nd[ENTRY_K[sheet]]=o.newPrem;
+  nd.status='Open';
+  nd.notes='Rolled from '+(s.strike!=null?s.strike:'?')+(s.exp?(' exp '+s.exp):'');
+  const r=await fetch('/api/diamonds-test/'+sheet,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:nd,account:acct})}).then(r=>r.json());
+  (GRID[sheet]=GRID[sheet]||[]).push({id:r.id,data:nd}); renderGrid(sheet);
+}
+let ACT=null;
+function openAct(sheet,id,mode){
+  const src=(GRID[sheet]||[]).find(r=>r.id===id); if(!src) return;
+  const d=src.data, isShares=sheet==='spy_shares';
+  const total=isShares?num(d.shares):inti(d.contracts,1);
+  ACT={sheet,id,mode,total};
+  let title,qtyL,exitL,showRoll=false;
+  if(mode==='roll'){ title='↻ Roll'; qtyL='Contracts to roll'; exitL='Buyback premium / ct'; showRoll=true; }
+  else if(mode==='sell'){ title='Sell shares'; qtyL='Shares to sell'; exitL='Sale price / share'; }
+  else { title='✓ Close'; qtyL=isShares?'Shares to close':'Contracts to close'; exitL=isShares?'Sale price / share':'Exit premium / ct'; }
+  $('act_title').textContent=title;
+  $('act_sub').textContent=(d.ticker||d.underlying||'')+' '+(isShares?(total+' sh'):((has(d.strike)?d.strike:'?')+(d.exp?(' '+d.exp):'')+' · '+total+'ct'));
+  $('act_qtyL').textContent=qtyL; $('act_qty').value=total; $('act_qty').max=total;
+  $('act_exitL').textContent=exitL; $('act_exit').value='';
+  document.querySelectorAll('.roll-only').forEach(e=>e.style.display=showRoll?'flex':'none');
+  if(showRoll){ $('act_exp').value=(d.exp||'').slice(0,10); $('act_strike').value=has(d.strike)?d.strike:''; $('act_newprem').value=''; }
+  $('act_hint').textContent=mode==='roll'
+    ? 'Closes the rolled contracts at the buyback price and opens a new leg for that quantity. Roll fewer than '+total+' to split.'
+    : 'Enter fewer than '+total+' to act on part of the position — the rest stays open.';
+  $('act_modal').classList.add('show');
+}
+function closeActModal(){ $('act_modal').classList.remove('show'); ACT=null; }
+function submitAct(){
+  if(!ACT) return;
+  const {sheet,id,mode,total}=ACT;
+  const qty=Math.max(1,Math.min(parseFloat($('act_qty').value)||total,total));
+  const exit=$('act_exit').value===''?null:parseFloat($('act_exit').value);
+  if(mode==='roll'){
+    const newPrem=$('act_newprem').value===''?null:parseFloat($('act_newprem').value);
+    if(newPrem==null){ toast('Enter the new leg premium'); return; }
+    doPartialRoll(sheet,id,{qty,buyback:exit,newStrike:$('act_strike').value===''?null:parseFloat($('act_strike').value),newExp:$('act_exp').value||null,newPrem});
+    toast(qty>=total?'Rolled ↻':'Rolled '+qty+' of '+total+' ↻');
+  }else{
+    doPartialClose(sheet,id,qty,exit);
+    const verb=mode==='sell'?'sold':'closed';
+    toast(qty>=total?(mode==='sell'?'Shares sold ✓':'Closed ✓'):qty+' of '+total+' '+verb+' ✓');
+  }
+  closeActModal();
+}
+
+// ── Auto-sync from tastytrade fills (rolls / partial closes / share sales) ─────
+function ymdToISO(ymd){ return (ymd&&ymd.length===6)?('20'+ymd.slice(0,2)+'-'+ymd.slice(2,4)+'-'+ymd.slice(4,6)):''; }
+function occLabel(sym){ const f=occFull(sym); if(!f) return sym; return f.root+' '+f.strike+f.cp+' '+ymdToISO(f.ymd); }
+// Find an OPEN tracker row that a closing fill belongs to. Prefer the exact tasty
+// symbol (_tsym); fall back to strike+expiration within the side-appropriate sheets.
+function matchCloseRow(sym, side){
+  const f=occFull(sym); if(!f) return null;
+  const cp=f.cp, strike=f.strike, exp=ymdToISO(f.ymd);
+  const sheets = side==='short' ? (cp==='P'?['mp_short','gi_short']:['naked_calls','leaps_short'])
+                                : (cp==='P'?['mp_long','gi_long','leaps_long','yltc','spec']:['leaps_long','yltc','spec']);
+  for(const sh of sheets){ for(const r of (GRID[sh]||[])){ if(isRowClosed(sh,r.data))continue; if(String(r.data._tsym||'').trim()===sym) return {sheet:sh,row:r,exact:true}; } }
+  const cands=[];
+  for(const sh of sheets){ for(const r of (GRID[sh]||[])){ if(isRowClosed(sh,r.data))continue; const d=r.data;
+    if(Math.abs(num(d.strike)-strike)<0.001 && (d.exp||'').slice(0,10)===exp) cands.push({sheet:sh,row:r,exact:false}); } }
+  if(cands.length===1) return cands[0];
+  if(cands.length>1) return {ambiguous:true};
+  return null;
+}
+function matchSharesRow(ticker){
+  for(const r of (GRID.spy_shares||[])){ if(isRowClosed('spy_shares',r.data))continue;
+    if(String(r.data.ticker||'SPY').toUpperCase()===String(ticker||'SPY').toUpperCase()) return {sheet:'spy_shares',row:r}; }
+  return null;
+}
+function reconcileTxns(txns){
+  const groups={}; txns.forEach(t=>{ const k=t.orderId||('solo-'+t.id); (groups[k]=groups[k]||[]).push(t); });
+  const props=[]; let deferredOpens=0; const deferredIds=[];
+  Object.values(groups).forEach(g=>{
+    // equity
+    g.filter(t=>t.instrument==='Equity').forEach(t=>{
+      const isSell=/sell/i.test(t.action)||/to close/i.test(t.action);
+      if(isSell){ const m=matchSharesRow(t.underlying);
+        props.push({txnIds:[t.id],kind:'sell',sheet:'spy_shares',rowId:m?m.row.id:null,ticker:t.underlying,qty:t.qty,price:t.price,include:true,
+          desc:'Sell '+t.qty+' '+t.underlying+' shares @ '+t.price,warn:m?'':'no matching lot → books a standalone closed record'});
+      }else{
+        props.push({txnIds:[t.id],kind:'buy',sheet:'spy_shares',ticker:t.underlying,qty:t.qty,price:t.price,include:true,
+          desc:'Buy '+t.qty+' '+t.underlying+' shares @ '+t.price,warn:''});
+      }
+    });
+    const opts=g.filter(t=>t.instrument==='Equity Option');
+    const closes=opts.filter(t=>/to close/i.test(t.action));
+    const opens =opts.filter(t=>/to open/i.test(t.action));
+    const usedOpen=new Set();
+    closes.forEach(c=>{
+      const cf=occParse(c.symbol);
+      const side=/buy/i.test(c.action)?'short':'long';   // BTC closes a short; STC closes a long
+      let ro=null;
+      for(const o of opens){ if(usedOpen.has(o.id))continue; const of=occParse(o.symbol); if(of&&cf&&of.cp===cf.cp&&o.underlying===c.underlying){ ro=o; break; } }
+      const m=matchCloseRow(c.symbol,side);
+      const matched=m&&!m.ambiguous;
+      if(ro){   // ROLL
+        usedOpen.add(ro.id); const rf=occFull(ro.symbol);
+        props.push({txnIds:[c.id,ro.id],kind:'roll',sheet:matched?m.sheet:null,rowId:matched?m.row.id:null,
+          qty:c.qty,buyback:c.price,newStrike:rf?rf.strike:null,newExp:rf?ymdToISO(rf.ymd):null,newPrem:ro.price,include:true,
+          desc:'Roll '+c.qty+'× '+occLabel(c.symbol)+' → '+occLabel(ro.symbol)+' · buyback '+c.price+', new '+ro.price,
+          warn:matched?'':(m&&m.ambiguous?'multiple matching rows — apply by hand':'source not tracked — skipped')});
+      }else{
+        props.push({txnIds:[c.id],kind:'close',sheet:matched?m.sheet:null,rowId:matched?m.row.id:null,qty:c.qty,price:c.price,include:matched,
+          desc:'Close '+c.qty+'× '+occLabel(c.symbol)+' @ '+c.price,
+          warn:matched?'':(m&&m.ambiguous?'multiple matching rows — apply by hand':'no matching open row — skipped')});
+      }
+    });
+    opens.forEach(o=>{ if(usedOpen.has(o.id))return; deferredOpens++; deferredIds.push(o.id); });
+  });
+  return {props, deferredOpens, deferredIds};
+}
+// Dedup store: applied transaction ids kept in a per-account '_synced' row.
+async function loadSyncedIds(){
+  const d=await fetch('/api/diamonds-test/_synced?account='+encodeURIComponent(acct)).then(r=>r.json()).catch(()=>({rows:[]}));
+  const row=(d.rows||[])[0];
+  return {ids:new Set((row&&row.data&&row.data.ids)||[]), rowId:row?row.id:null};
+}
+async function saveSyncedIds(rowId, idsSet){
+  const data={ids:[...idsSet].slice(-5000)};   // cap
+  if(rowId){ await fetch('/api/diamonds-test/row/'+rowId,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({data})}); return rowId; }
+  const r=await fetch('/api/diamonds-test/_synced',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,account:acct})}).then(r=>r.json());
+  return r.id;
+}
+let SYNC={props:[], applied:null, rowId:null, deferredIds:[]};
+async function syncFromTasty(){
+  const numAcct=TASTY_MAP[acct]; const btn=$('sync_btn');
+  if(!numAcct){ toast('No tastytrade account mapped'); return; }
+  btn.disabled=true; const old=btn.textContent; btn.textContent='⟳ Syncing…';
+  try{
+    const r=await fetch('/api/tasty/transactions/'+numAcct+'?days=21').then(r=>r.json());
+    if(r.error){ toast('tastytrade: '+r.error); btn.disabled=false; btn.textContent=old; return; }
+    const {ids:applied, rowId}=await loadSyncedIds();
+    const fresh=(r.transactions||[]).filter(t=>!applied.has(t.id));
+    const {props, deferredOpens, deferredIds}=reconcileTxns(fresh);
+    // Offer to consolidate any duplicate open share lots (same ticker) into one blended lot.
+    const byTicker={};
+    (GRID.spy_shares||[]).forEach(r=>{ if(isRowClosed('spy_shares',r.data))return; const t=String(r.data.ticker||'SPY').toUpperCase(); (byTicker[t]=byTicker[t]||[]).push(r); });
+    Object.entries(byTicker).forEach(([t,lots])=>{ if(lots.length>1){ let s=0,cost=0; lots.forEach(r=>{const sh=num(r.data.shares);s+=sh;cost+=sh*num(r.data.cost);}); const avg=s?(cost/s):0;
+      props.push({txnIds:[],kind:'consolidate',sheet:'spy_shares',ticker:t,qty:s,include:true,desc:'Consolidate '+lots.length+' '+t+' lots → '+s+' sh @ '+avg.toFixed(2)}); }});
+    SYNC={props, applied, rowId, deferredIds};
+    renderSync(props, deferredOpens, r.since);
+    $('sync_modal').classList.add('show');
+  }catch(e){ toast('Sync failed: '+e.message); }
+  btn.disabled=false; btn.textContent=old;
+}
+function renderSync(props, deferredOpens, since){
+  $('sync_sub').textContent=(ACCOUNTS.find(a=>a.id===acct)||{}).label+' · fills since '+since;
+  if(!props.length && !deferredOpens){ $('sync_body').innerHTML='<div class="deltaempty">No new closes, rolls or sales to reconcile since the last sync.</div>'; $('sync_note').textContent=''; $('sync_apply').style.display='none'; return; }
+  $('sync_apply').style.display='';
+  let h='<table class="stage"><thead><tr><th style="width:34px"></th><th>Action</th><th>Section</th><th>Detail</th></tr></thead><tbody>';
+  props.forEach((p,i)=>{
+    const applic=(p.kind==='buy')||p.rowId||(p.kind==='sell')||(p.kind==='consolidate');   // can we apply it?
+    const chk=(p.include&&applic)?'checked':''; const dis=applic?'':'disabled';
+    const sec=p.sheet?(SEC_LABEL[p.sheet]||p.sheet):(p.kind==='buy'||p.kind==='sell'?'SPY Shares':'—');
+    const badge={roll:'#FEF3C7|#92400E',close:'#DBEAFE|#1D4ED8',sell:'#FEE2E2|#991B1B',buy:'#DCFCE7|#166534',consolidate:'#EDE9FE|#5B21B6'}[p.kind]||'#F3F4F6|#374151';
+    const [bg,fg]=badge.split('|');
+    h+=`<tr><td><input type="checkbox" ${chk} ${dis} onchange="SYNC.props[${i}].include=this.checked"></td>`+
+       `<td><span class="stage-badge" style="background:${bg};color:${fg}">${p.kind.toUpperCase()}</span></td>`+
+       `<td>${sec}</td><td>${p.desc}${p.warn?` <span style="color:var(--yellow)">— ${p.warn}</span>`:''}</td></tr>`;
+  });
+  h+='</tbody></table>';
+  if(deferredOpens) h+=`<div class="deltaempty" style="margin-top:8px">${deferredOpens} new opening trade(s) detected — add those with <b>↓ Import Positions</b> (they need a strategy tab).</div>`;
+  $('sync_body').innerHTML=h;
+  const n=props.filter(p=>p.include&&(p.rowId||p.kind==='buy'||p.kind==='consolidate')).length;
+  $('sync_note').textContent=n+' will be applied';
+}
+async function applySync(){
+  const toApply=SYNC.props.filter(p=>p.include&&(p.rowId||p.kind==='buy'||p.kind==='consolidate'));
+  let n=0;
+  for(const p of toApply){
+    try{
+      if(p.kind==='close'||p.kind==='sell'){ await doPartialClose(p.sheet,p.rowId,p.qty,p.price); n++; }
+      else if(p.kind==='roll'){ await doPartialRoll(p.sheet,p.rowId,{qty:p.qty,buyback:p.buyback,newStrike:p.newStrike,newExp:p.newExp,newPrem:p.newPrem}); n++; }
+      else if(p.kind==='buy'){ await mkSharesLot(p.ticker,p.qty,p.price); n++; }
+      else if(p.kind==='consolidate'){ await consolidateShares(p.ticker); n++; }
+    }catch(e){ /* keep going */ }
+  }
+  // mark applied (+ acknowledge deferred opens so they don't nag)
+  const applied=SYNC.applied;
+  toApply.forEach(p=>p.txnIds.forEach(id=>applied.add(id)));
+  SYNC.deferredIds.forEach(id=>applied.add(id));
+  await saveSyncedIds(SYNC.rowId, applied);
+  $('sync_modal').classList.remove('show');
+  renderAnalytics&&renderAnalytics();
+  toast('Synced ✓ — applied '+n+' reconciliation'+(n===1?'':'s'));
+}
+async function mkSharesLot(ticker,shares,cost){
+  const t=String(ticker||'SPY').toUpperCase();
+  // If an open lot for this ticker exists, add to it and re-blend the average cost.
+  const ex=(GRID.spy_shares||[]).find(r=>!isRowClosed('spy_shares',r.data) && String(r.data.ticker||'SPY').toUpperCase()===t);
+  if(ex){
+    const s0=num(ex.data.shares), c0=num(ex.data.cost), s1=num(shares), c1=num(cost), ns=s0+s1;
+    ex.data.shares=ns; ex.data.cost=ns?Math.round((s0*c0+s1*c1)/ns*100)/100:c1;
+    scheduleSave(ex.id,ex.data); renderGrid('spy_shares'); return;
+  }
+  const data={open:today(),ticker:t,shares,cost,status:'Open'};
+  const r=await fetch('/api/diamonds-test/spy_shares',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,account:acct})}).then(r=>r.json());
+  (GRID.spy_shares=GRID.spy_shares||[]).push({id:r.id,data}); renderGrid('spy_shares');
+}
+// Merge all OPEN share lots of a ticker into one, blending the average cost.
+async function consolidateShares(ticker){
+  const t=String(ticker||'SPY').toUpperCase();
+  const lots=(GRID.spy_shares||[]).filter(r=>!isRowClosed('spy_shares',r.data) && String(r.data.ticker||'SPY').toUpperCase()===t);
+  if(lots.length<2) return 0;
+  let s=0,cost=0; lots.forEach(r=>{ const sh=num(r.data.shares); s+=sh; cost+=sh*num(r.data.cost); });
+  const keep=lots[0]; keep.data.shares=s; keep.data.cost=s?Math.round((cost/s)*100)/100:0;
+  scheduleSave(keep.id,keep.data);
+  for(let i=1;i<lots.length;i++){ await fetch('/api/diamonds-test/row/'+lots[i].id,{method:'DELETE'}); GRID.spy_shares=(GRID.spy_shares||[]).filter(r=>r.id!==lots[i].id); }
+  renderGrid('spy_shares'); return lots.length;
+}
+async function loadSheet(sheet){
+  const d=await fetch('/api/diamonds-test/'+sheet+'?account='+encodeURIComponent(acct)).then(r=>r.json()).catch(()=>({rows:[]}));
+  GRID[sheet]=(d.rows||[]).map(r=>({id:r.id,data:r.data||{}}));
+  if(sheet==='yltc'){ try{ await migrateYLTC(); }catch(e){ console.warn('YLTC migrate skipped:',e&&e.message); } }
+  renderGrid(sheet);
+}
+// One-time, idempotent: split legacy YLTC "combo" rows (call+put on one row) into two
+// leg rows so they show as two trades — exactly how tastytrade lists them. Runs on load;
+// once a row has `otype` set it is never touched again.
+let _yltcMigrating=false;
+async function migrateYLTC(){
+  if(_yltcMigrating) return; _yltcMigrating=true;
+  try{
+    const legacy=(GRID.yltc||[]).filter(r=>{const d=r.data; return d.otype==null && (has(d.call_strike)||has(d.put_strike)||has(d.call_cost)||has(d.put_cost));});
+    for(const r of legacy){
+      const d=r.data;
+      const parts=String(d._tsym||'').split(',').map(s=>s.trim()).filter(Boolean);
+      const symOf=cp=>parts.find(s=>{const o=occFull(s);return o&&o.cp===cp;})||'';
+      const closed=(d.status==='Closed'||has(d.close));
+      const hasCall=has(d.call_strike)||has(d.call_cost);
+      const hasPut =has(d.put_strike)||has(d.put_cost);
+      const base={trade_id:d.trade_id,open:d.open,exp:d.exp,close:d.close,status:d.status,ticker:d.ticker,contracts:d.contracts,notes:d.notes};
+      const clear={call_strike:null,call_cost:null,put_strike:null,put_cost:null,cur_call:null,cur_put:null};
+      if(hasCall && hasPut){
+        // snapshot the PUT-leg values BEFORE we clear them off the original row
+        const putData={...base,otype:'P',strike:d.put_strike,cost:d.put_cost,cur_mark:d.cur_put,_tsym:symOf('P')||''};
+        if(closed && has(d.cur_put)) putData.exit_prem=d.cur_put;
+        // convert the original row in place → the CALL leg
+        const callPatch={...clear,otype:'C',strike:d.call_strike,cost:d.call_cost,cur_mark:d.cur_call,_tsym:symOf('C')||''};
+        if(closed && has(d.cur_call)) callPatch.exit_prem=d.cur_call;
+        Object.assign(d,callPatch);
+        await fetch('/api/diamonds-test/row/'+r.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:d})});
+        // create a new row for the PUT leg
+        const nr=await fetch('/api/diamonds-test/yltc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:putData,account:acct})}).then(x=>x.json());
+        GRID.yltc.push({id:nr.id,data:putData});
+      }else{
+        const cp=hasCall?'C':'P';
+        const patch={...clear,otype:cp,strike:hasCall?d.call_strike:d.put_strike,cost:hasCall?d.call_cost:d.put_cost,cur_mark:hasCall?d.cur_call:d.cur_put,_tsym:symOf(cp)||d._tsym||''};
+        if(closed){ const cm=hasCall?d.cur_call:d.cur_put; if(has(cm)) patch.exit_prem=cm; }
+        Object.assign(d,patch);
+        await fetch('/api/diamonds-test/row/'+r.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:d})});
+      }
+    }
+  } finally { _yltcMigrating=false; }
+}
+function submitDailyRoll(){
+  const id=$('dd_roll_id').value; const src=(GRID.daily||[]).find(r=>r.id===id); if(!src) return;
+  const d=src.data, ct=inti(d.contracts,1);
+  const combo=parseFloat($('dd_roll_credit').value)||0;
+  const closeStr=$('dd_roll_close').value;
+  const hasClose=closeStr!==''&&!isNaN(parseFloat(closeStr));
+  const closeVal=parseFloat(closeStr)||0;
+  const prior=num(d.credit)||0;
+  const oldLegs=[d.sp,d.lp,d.sc,d.lc].filter(x=>x!=null&&x!=='').join('/')||'?';
+  const oldExp=d.exp||'';
+  let extra='';
+  if(hasClose){
+    const oldPnl=(closeVal+prior)*ct*100;           // realized on the spread being rolled out
+    d.rolled_pnl=(num(d.rolled_pnl)||0)+oldPnl;
+    d.credit=combo-closeVal;                          // new spread's opening credit
+    extra=' (closed '+closeVal.toFixed(2)+', P&L '+(oldPnl>=0?'+':'−')+'$'+Math.abs(oldPnl).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+')';
+  } else {
+    d.credit=prior+combo;                             // no close value → running cumulative credit
+  }
+  const nv=el=>{ const v=$(el).value; return v===''?null:parseFloat(v); };
+  d.sp=nv('dd_roll_sp'); d.lp=nv('dd_roll_lp'); d.sc=nv('dd_roll_sc'); d.lc=nv('dd_roll_lc');
+  d.exp=$('dd_roll_exp').value||d.exp;
+  const newLegs=[d.sp,d.lp,d.sc,d.lc].filter(x=>x!=null&&x!=='').join('/')||'?';
+  const line='Rolled '+oldLegs+(oldExp?(' '+oldExp):'')+extra+' \u2192 '+newLegs+(d.exp?(' '+d.exp):'')+' \u00b7 roll '+(combo>=0?'+':'')+combo.toFixed(2);
+  d.notes=(d.notes&&d.notes.trim())?(d.notes+'  \u00b7  '+line):line;
+  scheduleSave(id,d);
+  $('dd_rollpanel').style.display='none';
+  renderGrid('daily');
+  toast('Rolled \u21bb'+(hasClose?' — rolled-out P&L logged':'')+', new strikes & expiration applied');
+}
+
+// ── Analytics (computed from the grids + manual inputs) ───────────────────────
+const AN_INPUTS=[['net_liq','Net Liquidity'],['bp','Buying Power'],['weeks_left','Weeks Left in MP Campaign'],['delta','Portfolio Delta'],['theta','Portfolio Theta']];
+function sumOpenLongCost(){return (GRID.mp_long||[]).filter(r=>r.data.status!=='Closed').reduce((s,r)=>s+num(r.data.prem_bought)*inti(r.data.contracts,1)*100,0);}
+function sumOpenShortCredit(){return (GRID.mp_short||[]).filter(r=>r.data.status!=='Closed').reduce((s,r)=>s+num(r.data.prem_sold)*inti(r.data.contracts,1)*100,0);}
+function mpGapRisk(){ // legacy: net strike-sum gap (only correct when longs out-weigh shorts) — kept for reference
+  const longNot=(GRID.mp_long||[]).filter(r=>r.data.status!=='Closed').reduce((s,r)=>s+num(r.data.strike)*inti(r.data.contracts,1),0);
+  const shortNot=(GRID.mp_short||[]).filter(r=>r.data.status!=='Closed').reduce((s,r)=>s+num(r.data.strike)*inti(r.data.contracts,1),0);
+  return Math.max(0,(longNot-shortNot))*100;
+}
+// True worst-case defined loss of the whole MP put book (longs + shorts) at expiration.
+// Net loss at underlying S = Σ short ct·max(K−S,0) − Σ long ct·max(K−S,0); the payoff is
+// piecewise-linear so the worst point sits at one of the strikes (or a deep crash, S=0).
+// Unlike the strike-sum shortcut this stays correct when shorts out-weigh longs (under-hedged),
+// where the old max(0,·) silently reported $0. Assumes a common expiration — a floor on real
+// risk, since the shorts here expire weeks before the protective longs.
+function mpMaxLoss(){
+  const open=r=>r.data.status!=='Closed';
+  const longs =(GRID.mp_long ||[]).filter(open).map(r=>({k:num(r.data.strike),ct:inti(r.data.contracts,1)})).filter(o=>o.k>0);
+  const shorts=(GRID.mp_short||[]).filter(open).map(r=>({k:num(r.data.strike),ct:inti(r.data.contracts,1)})).filter(o=>o.k>0);
+  if(!shorts.length) return 0;
+  const pts=[0, ...longs.map(o=>o.k), ...shorts.map(o=>o.k)];
+  let worst=0;
+  pts.forEach(S=>{
+    let loss=0;
+    shorts.forEach(o=>{ if(o.k>S) loss+=(o.k-S)*o.ct; });   // short put: you owe intrinsic
+    longs .forEach(o=>{ if(o.k>S) loss-=(o.k-S)*o.ct; });   // long put: pays you intrinsic
+    if(loss>worst) worst=loss;
+  });
+  return worst*100;
+}
+function mpLongPnl(){return (GRID.mp_long||[]).reduce((s,r)=>s+(has(r.data.exit_prem)?(num(r.data.exit_prem)-num(r.data.prem_bought))*inti(r.data.contracts,1)*100:0),0);}
+function mpShortPnl(){return (GRID.mp_short||[]).reduce((s,r)=>s+(has(r.data.exit_prem)?(num(r.data.prem_sold)-num(r.data.exit_prem))*inti(r.data.contracts,1)*100:0),0);}
+function dailyOpenMargin(){return (GRID.daily||[]).filter(r=>!r.data.close).reduce((s,r)=>s+(ddMaxRisk(r.data)||0),0);}
+function dailyTotalCredit(){return (GRID.daily||[]).reduce((s,r)=>s+(has(r.data.credit)?num(r.data.credit)*inti(r.data.contracts,1)*100:0),0);}
+function mpShortCollected(){return (GRID.mp_short||[]).reduce((s,r)=>s+num(r.data.prem_sold)*inti(r.data.contracts,1)*100,0);} // gross premium sold
+function dailyCreditIncome(){return (GRID.daily||[]).reduce((s,r)=>s+((has(r.data.credit)&&num(r.data.credit)>0)?num(r.data.credit)*inti(r.data.contracts,1)*100:0),0);} // credit spreads only (debits excluded)
+function dailyOpenContracts(){return (GRID.daily||[]).filter(r=>!r.data.close).reduce((s,r)=>s+inti(r.data.contracts,1),0);}
+function dailyAvgCredit(){const a=(GRID.daily||[]).map(r=>num(r.data.credit)).filter(x=>x);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null;}
+function giOpenCoverage(){
+  const L=(GRID.gi_long||[]).filter(r=>!r.data.exit_date).reduce((s,r)=>s+num(r.data.strike)*inti(r.data.contracts,1),0);
+  const S=(GRID.gi_short||[]).filter(r=>!r.data.exit_date).reduce((s,r)=>s+num(r.data.strike)*inti(r.data.contracts,1),0);
+  return (L-S)*100;   // matched put debit spread coverage = Σ(long−short)×ct×100
+}
+function renderGICover(){
+  const el=$('gi_cover'); if(!el) return;
+  const longs=(GRID.gi_long||[]).filter(r=>!r.data.exit_date);
+  const shorts=(GRID.gi_short||[]).filter(r=>!r.data.exit_date);
+  const longCost=longs.reduce((s,r)=>s+num(r.data.prem_paid)*inti(r.data.contracts,1)*100,0);
+  const shortCred=shorts.reduce((s,r)=>s+num(r.data.prem_recv)*inti(r.data.contracts,1)*100,0);
+  const cov=giOpenCoverage();
+  el.innerHTML=
+    `<div class="covcard"><label>Long Cost (open)</label><div class="cv dn">${fMoney(longCost)}</div></div>`+
+    `<div class="covcard"><label>Short Credit (open)</label><div class="cv up">${fMoney(shortCred)}</div></div>`+
+    `<div class="covcard"><label>Net Cost</label><div class="cv">${fMoney(longCost-shortCred)}</div></div>`+
+    `<div class="covcard"><label>Coverage Value</label><div class="cv up">${fMoney(cov)}</div></div>`;
+}
+function weeksSpan(rows,dk){const ds=(rows||[]).map(r=>r.data[dk]).filter(Boolean).map(d=>new Date(d)).filter(d=>!isNaN(d));return ds.length?Math.max(1,(new Date()-new Date(Math.min(...ds)))/(7*864e5)):1;}
+function leapAvgCost(){const open=(GRID.leaps_long||[]).filter(r=>!r.data.close);const tot=open.reduce((s,r)=>s+num(r.data.cost)*inti(r.data.contracts,1),0);const ct=open.reduce((s,r)=>s+inti(r.data.contracts,1),0);return ct?tot/ct*100:null;}
+
+function anGet(k){return anRow?num(anRow.data[k]):0;}
+// Weeks until the soonest-expiring OPEN long MP put (rounded to the closest week).
+function weeksToNextLongMP(){
+  let best=null;
+  (GRID.mp_long||[]).forEach(r=>{ const d=r.data; if(d.status==='Closed'||!has(d.exp)) return;
+    const dte=dTo(d.exp); if(dte!=null && (best==null || dte<best)) best=dte; });
+  return best==null?null:Math.max(0,Math.round(best/7));
+}
+function computeAnalytics(){
+  const nl=anGet('net_liq'), bp=anGet('bp'), wl=weeksToNextLongMP();
+  const mpMargin=mpMaxLoss();
+  const ddMargin=dailyOpenMargin();
+  const totMargin=mpMargin+ddMargin;
+  const openPnl=mpLongPnl()+mpShortPnl();
+  const mpWeekly=mpShortCollected()/weeksSpan(GRID.mp_short,'date_sold');
+  const ddWeekly=dailyCreditIncome()/weeksSpan(GRID.daily,'open');
+  const totWeekly=mpWeekly+ddWeekly;
+  const reqCov=mpMargin*2, curCov=giOpenCoverage();
+  const dc=dailyAvgCredit(), lc=leapAvgCost();
+  return {
+    bppct:{v:nl?fPct(bp/nl):'—', c:(nl&&bp/nl>=0.30)?'up':'dn'},
+    mpmargin:{v:fMoney(mpMargin)}, ddmargin:{v:fMoney(ddMargin)}, totmargin:{v:fMoney(totMargin)},
+    atrisk:{v:nl?fPct(totMargin/nl):'—'},
+    openpnl:{v:fMoney(openPnl), c:openPnl>=0?'up':'dn'},
+    gainpct:{v:nl?fPct(openPnl/nl):'—', c:openPnl>=0?'up':'dn'},
+    mpwk:{v:fMoney(mpWeekly), c:mpWeekly>=0?'up':'dn'}, ddwk:{v:fMoney(ddWeekly), c:ddWeekly>=0?'up':'dn'},
+    totwk:{v:fMoney(totWeekly), c:totWeekly>=0?'up':'dn'},
+    monthly:{v:fMoney(totWeekly*4.33), c:totWeekly>=0?'up':'dn'}, annual:{v:fMoney(totWeekly*52), c:totWeekly>=0?'up':'dn'},
+    weeksnext:{v: wl!=null ? String(wl) : '—'},
+    projmp:{v:fMoney(mpWeekly*(wl||0))}, riskcap:{v:fMoney(mpMargin)},
+    wksbe:{v:mpWeekly>0?(mpMargin/mpWeekly).toFixed(1):'—'},
+    leapcost:{v:lc!=null?fMoney(lc):'—'},
+    reqcov:{v:fMoney(reqCov)}, curcov:{v:fMoney(curCov)},
+    covprot:{v:(curCov-reqCov>=0?'✓ Covered   +':'⚠ Short   ')+fMoney(curCov-reqCov), c:curCov-reqCov>=0?'up':'dn'},
+    avgcred:{v:dc!=null?'$'+dc.toFixed(2):'—'},
+    openct:{v:dailyOpenContracts()},
+  };
+}
+function renderAnalytics(){
+  const a=computeAnalytics();
+  const L=(label,note)=>`<div class="an-l"><span class="an-lbl">${label}</span>${note?`<span class="an-note" title="${note}">${note}</span>`:''}</div>`;
+  const C=(key,label,note)=>`<div class="an-row">${L(label,note)}<div class="an-v"><span class="val ${a[key].c||''}" id="an_${key}">${a[key].v}</span></div></div>`;
+  const I=(k,label,note)=>`<div class="an-row input-row">${L(label,note)}<div class="an-v"><input class="ainp" data-k="${k}" type="number" step="0.01" value="${anRow&&anRow.data[k]!=null?anRow.data[k]:''}"></div></div>`;
+  const M=(k,label,note)=>{
+    const has=anRow&&anRow.data[k]!=null&&anRow.data[k]!=='';
+    const disp=has?fMoney(num(anRow.data[k])):'— tap to enter —';
+    return `<div class="an-row input-row">${L(label,note)}<div class="an-v"><span class="moneycell${has?' filled':''}" data-k="${k}" onclick="editMoney(this)">${disp}</span></div></div>`;
+  };
+  // Portfolio Delta row + live "directional lean" badge
+  const deltaRowHTML=()=>{
+    const dv=(anRow&&anRow.data.delta!=null&&anRow.data.delta!=='')?anRow.data.delta:'';
+    return `<div class="an-row input-row">${L('Portfolio Delta','Net Δ — auto-fills on ⟳ Pull Greeks (raw, matches Delta by Strategy). Editable.')}<div class="an-v delta-lean"><span id="delta_lean">${dv!==''?deltaLean(num(dv)):''}</span><input class="ainp" data-k="delta" type="number" step="0.01" value="${dv}" oninput="updateDeltaLean()"></div></div>`;
+  };
+  // Primary rows — always shown (Gary's key set).
+  const primary=
+      M('net_liq','Net Liquidity','Live from tastytrade (⟳ Pull), or tap to enter.')+
+      M('bp','Buying Power','Live from tastytrade (⟳ Pull), or tap to enter.')+
+      C('bppct','BP Available % of NetLiq','Aim above 30%.')+
+      C('weeksnext','Num of Weeks to next Long MP Expiration','Weeks until the soonest-expiring open long MP put.')+
+      C('reqcov','Required GI Coverage (2× Risk)','2 × MP max defined loss.')+
+      C('curcov','Current GI Coverage','Σ open GI coverage value.')+
+      C('covprot','Coverage Surplus / (Shortfall)','Current − required (2× MP risk). Positive = surplus; negative = short.')+
+      deltaRowHTML();
+  // Everything else — hidden under a click-to-expand toggle.
+  const more=
+      C('mpmargin','MP Risk (max defined loss)','Worst-case loss of the MP long+short put book at expiration, tested across every strike. Assumes common expiry — a floor, since your shorts expire before the longs.')+
+      C('ddmargin','Daily Spread Margin Used','Σ open Daily Diamonds max risk.')+
+      C('totmargin','Total Margin Used','MP + daily spread margin.')+
+      C('atrisk','Portfolio At Risk %','Total margin / net liq.')+
+      C('openpnl','Open P&L','Money Press long + short.')+
+      C('gainpct','Portfolio Gain %','Open P&L / net liq.')+
+      C('mpwk','MP Avg Weekly Premium','Premium collected on short puts ÷ weeks.')+
+      C('ddwk','Weekly Premium (Daily Spreads)','Credit-spread premium (debit trades excluded) ÷ weeks.')+
+      C('totwk','Total Avg Weekly Premium','MP + daily spreads.')+
+      C('monthly','Monthly Premium Projection','× 4.33.')+
+      C('annual','Annual Income Projection','× 52.')+
+      C('projmp','Projected Future MP Premium','MP weekly × weeks left.')+
+      C('riskcap','MP Risk Capital','Same as MP margin used.')+
+      C('wksbe','MP WKSBE (weeks to break even)','MP risk ÷ MP weekly premium.')+
+      C('leapcost','Avg Cost per Open LEAP','Open LEAP cost per contract × 100.')+
+      C('avgcred','Avg Premium Per Credit Spread','Mean net credit / contract.')+
+      C('openct','Total Daily Spread Contracts Open','Σ open daily contracts.')+
+      I('theta','Portfolio Theta','Net theta $/day — auto-fills on ⟳ Pull Greeks. Editable.');
+  const open=anMoreOpen;
+  $('an_host').innerHTML='<div class="an-box">'+primary+
+    `<div class="an-row an-toggle" onclick="toggleAnMore()"><div class="an-l"><span class="an-lbl" id="an_more_lbl">${open?'▾ Hide extra metrics':'▸ Show all metrics'}</span><span class="an-note">18 more</span></div></div>`+
+    `<div class="an-more${open?' show':''}" id="an_more">`+more+'</div>'+
+    '</div>';
+  renderMelocsWatch();
+}
+let anMoreOpen=false;
+function toggleAnMore(){ anMoreOpen=!anMoreOpen; const m=$('an_more'),l=$('an_more_lbl'); if(m)m.classList.toggle('show',anMoreOpen); if(l)l.textContent=anMoreOpen?'▾ Hide extra metrics':'▸ Show all metrics'; }
+// Plain-language read of the net portfolio delta.
+function deltaLean(d){
+  if(d==null||isNaN(d)) return '';
+  const a=Math.abs(d);
+  if(a<5) return '<span class="lean neu">⚪ ~neutral · little directional bet</span>';
+  const up=d>0, mag=a<20?'slightly ':'';
+  return `<span class="lean ${up?'up':'dn'}">${up?'🟢':'🔴'} ${mag}${up?'long · favors an up move':'short · favors a down move'}</span>`;
+}
+function updateDeltaLean(){ const inp=document.querySelector('.ainp[data-k="delta"]'), el=$('delta_lean'); if(!inp||!el)return; const v=inp.value; el.innerHTML=(v===''||isNaN(parseFloat(v)))?'':deltaLean(parseFloat(v)); }
+
+// ---- MELOCS Watch ------------------------------------------------------------
+// Money Press = daily short puts (income) paired with lower long puts (protection).
+// The short strike sits ABOVE the long. As that gap widens, more of a crash lands
+// on undefined ground before the long kicks in — so once the short puts are ~15–20
+// XSP points above the protective longs, Gary layers on MELOCS catastrophe insurance.
+// This scans the open MP put book, grouped by underlying, and flags the gap zone.
+const MELOCS_BAND={approach:13, low:15, high:20};   // in XSP points
+function mpMelocsWatch(){
+  const open=r=>r.data.status!=='Closed';
+  const byU={};
+  const collect=(sheet,side)=>{ (GRID[sheet]||[]).filter(open).forEach(r=>{
+    const k=num(r.data.strike), ct=inti(r.data.contracts,1);
+    if(!(k>0)) return;
+    const u=(r.data.underlying||'XSP');
+    (byU[u]=byU[u]||{short:[],long:[]})[side].push({k,ct});
+  }); };
+  collect('mp_short','short'); collect('mp_long','long');
+  const out=[];
+  Object.keys(byU).forEach(u=>{
+    const g=byU[u]; if(!g.short.length && !g.long.length) return;
+    const scale=/SPX/i.test(u)?10:1;                       // SPX strikes are ~10× XSP
+    const wsum=a=>a.reduce((s,o)=>s+o.k*o.ct,0), csum=a=>a.reduce((s,o)=>s+o.ct,0);
+    const sC=csum(g.short), lC=csum(g.long);
+    const avgShort=sC?wsum(g.short)/sC:null, avgLong=lC?wsum(g.long)/lC:null;
+    const typical=(avgShort!=null&&avgLong!=null)?avgShort-avgLong:null;
+    // widest single-short gap: each short is protected by the highest long at/below it
+    let widest=null, wShort=null, wLong=null, unprot=false;
+    g.short.forEach(s=>{
+      const below=g.long.filter(l=>l.k<=s.k).map(l=>l.k);
+      if(!below.length){ unprot=true; }
+      const prot=below.length?Math.max(...below):(g.long.length?Math.max(...g.long.map(l=>l.k)):null);
+      const gap=prot!=null?s.k-prot:null;
+      if(gap!=null && (widest==null||gap>widest)){ widest=gap; wShort=s.k; wLong=prot; }
+    });
+    const underHedged=sC>lC;
+    const gapX=(widest!=null?widest:typical)!=null?(widest!=null?widest:typical)/scale:null;  // XSP-equivalent
+    let status='none', label='';
+    if(!g.short.length){ status='none'; label='No open short puts to watch'; }
+    else if(!g.long.length){ status='wide'; label='⚠ Short puts with NO long protection — buy MELOCS'; }
+    else if(gapX==null){ status='none'; label='—'; }
+    else if(gapX>MELOCS_BAND.high){ status='wide'; label=`⚠ Gap beyond ${MELOCS_BAND.high} pts — add MELOCS now`; }
+    else if(gapX>=MELOCS_BAND.low){ status='consider'; label=`⚠ In the ${MELOCS_BAND.low}–${MELOCS_BAND.high} pt band — consider buying MELOCS`; }
+    else if(gapX>=MELOCS_BAND.approach){ status='approach'; label=`Gap approaching the ${MELOCS_BAND.low}–${MELOCS_BAND.high} pt MELOCS band`; }
+    else { status='clear'; label='✓ Protection close — no MELOCS needed'; }
+    out.push({u,scale,avgShort,avgLong,typical,widest,wShort,wLong,sC,lC,underHedged,unprot,gapX,status,label,
+              shorts:g.short.slice().sort((a,b)=>b.k-a.k), longs:g.long.slice().sort((a,b)=>b.k-a.k)});
+  });
+  out.sort((a,b)=>(a.u==='XSP'?-1:b.u==='XSP'?1:a.u.localeCompare(b.u)));   // XSP first
+  return out;
+}
+function renderMelocsWatch(){
+  const host=$('melocs_watch'); if(!host) return;
+  const rows=mpMelocsWatch();
+  if(!rows.length){ host.innerHTML=''; return; }
+  const fk=x=>x==null?'—':(Math.round(x*100)/100);
+  const fpts=x=>x==null?'—':(Math.round(x*100)/100)+' pts';
+  const multi=rows.length>1;
+  const blocks=rows.map(r=>{
+    const cls=r.status;
+    const shortList=r.shorts.map(o=>`${fk(o.k)}${o.ct>1?'×'+o.ct:''}`).join(' · ')||'—';
+    const longList =r.longs .map(o=>`${fk(o.k)}${o.ct>1?'×'+o.ct:''}`).join(' · ')||'—';
+    const equiv=(r.scale!==1&&r.gapX!=null)?` <span class="melo-eq">(≈ ${fpts(r.gapX)} XSP)</span>`:'';
+    const warns=[];
+    if(r.underHedged) warns.push(`⚠ ${r.sC} short vs ${r.lC} long contracts — book is under-hedged`);
+    if(r.unprot) warns.push('⚠ a short put sits below every long — that leg has no put beneath it');
+    return `<div class="melo-block">
+      ${multi?`<div class="melo-u">${r.u}</div>`:''}
+      <div class="melo-status ${cls}">${r.label}</div>
+      <div class="melo-grid">
+        <div class="melo-cell"><label>Avg short strike</label><div class="mv up">${fk(r.avgShort)}</div></div>
+        <div class="melo-cell"><label>Avg long strike</label><div class="mv dn">${fk(r.avgLong)}</div></div>
+        <div class="melo-cell"><label>Typical gap</label><div class="mv">${fpts(r.typical)}</div></div>
+        <div class="melo-cell"><label>Widest gap</label><div class="mv strong">${fpts(r.widest)}${equiv}</div></div>
+      </div>
+      <div class="melo-lists">
+        <div><span class="ml-tag short">Short puts</span>${shortList}</div>
+        <div><span class="ml-tag long">Long puts</span>${longList}</div>
+      </div>
+      ${r.wShort!=null?`<div class="melo-note">Widest pairing: short ${fk(r.wShort)} → nearest long ${fk(r.wLong)} = ${fpts(r.widest)} gap${equiv}</div>`:''}
+      ${warns.length?`<div class="melo-warn">${warns.join('<br>')}</div>`:''}
+    </div>`;
+  }).join('');
+  host.innerHTML=`<div class="an-box melo-box">
+    <div class="melo-head">🎯 MELOCS Watch<span class="melo-sub">short-put vs long-put gap · alert band ${MELOCS_BAND.low}–${MELOCS_BAND.high} XSP pts</span></div>
+    ${blocks}
+  </div>`;
+}
+function recomputeAnalytics(){   // update computed cells in place; never rebuild the inputs
+  const a=computeAnalytics();
+  for(const key in a){ const el=$('an_'+key); if(el){ el.textContent=a[key].v; el.className='val '+(a[key].c||''); } }
+  renderMelocsWatch();
+}
+function editMoney(span){
+  const k=span.dataset.k;
+  const inp=document.createElement('input');
+  inp.type='number'; inp.step='0.01'; inp.className='ainp moneyedit';
+  inp.value=(anRow&&anRow.data[k]!=null?anRow.data[k]:'');
+  const commit=()=>{ anRow.data[k]=inp.value; scheduleSave(anRow.id,anRow.data); renderAnalytics(); };
+  inp.onblur=commit; inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
+  span.replaceWith(inp); inp.focus(); inp.select();
+}
+document.addEventListener('input',e=>{
+  if(!e.target.classList.contains('ainp'))return;
+  if(!anRow)return; anRow.data[e.target.dataset.k]=e.target.value;
+  recomputeAnalytics(); scheduleSave(anRow.id,anRow.data);
+});
+async function loadAnalyticsInputs(){
+  const d=await fetch('/api/diamonds-test/analytics?account='+encodeURIComponent(acct)).then(r=>r.json()).catch(()=>({rows:[]}));
+  if(d.rows&&d.rows.length){ anRow={id:d.rows[0].id,data:d.rows[0].data||{}}; }
+  else { const r=await fetch('/api/diamonds-test/analytics',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:{},account:acct})}).then(r=>r.json()); anRow={id:r.id,data:{}}; }
+}
+
+// ── Accounts ──────────────────────────────────────────────────────────────────
+const ACCOUNTS=[{id:'individual',label:'Individual'},{id:'rollover',label:'Rollover IRA'},{id:'roth',label:'ROTH IRA'},{id:'beneficiary',label:'Beneficiary IRA'},{id:'sep',label:'SEP IRA'}];
+// tracker account -> tastytrade account number
+const TASTY_MAP={individual:'5WI90089', rollover:'5WI92344', roth:'5WI88439', beneficiary:'5WI92368', sep:'5WI97886'};
+// ── Import positions from tastytrade (staging + tag + file) ───────────────────
+let STAGE=[];  // parsed legs awaiting tag/file
+async function clearAccount(){
+  const label=(ACCOUNTS.find(a=>a.id===acct)||{}).label;
+  let n=0; Object.keys(SHEETS).forEach(s=>n+=(GRID[s]||[]).length);
+  if(!n){ toast('No trades to clear in '+label); return; }
+  if(!confirm('Delete all '+n+' trade rows in "'+label+'"?\n\nThis clears every Money Press, Daily Diamonds, Leaps and Gap Insurance row for THIS account only. Your Net Liq / Buying Power inputs are kept. This cannot be undone.')) return;
+  for(const s of Object.keys(SHEETS)){
+    for(const r of (GRID[s]||[]).slice()){ await fetch('/api/diamonds-test/row/'+r.id,{method:'DELETE'}); }
+    GRID[s]=[]; renderGrid(s);
+  }
+  renderAnalytics();
+  toast('Cleared '+n+' trades from '+label);
+}
+function daysTo(d){ const t=new Date(d); return isNaN(t)?999:Math.round((t-new Date())/864e5); }
+function importedSymbols(){   // collect tasty symbols already filed for this account (dedup)
+  const set=new Set();
+  Object.keys(SHEETS).forEach(s=>(GRID[s]||[]).forEach(r=>{
+    const t=r.data._tsym; if(!t) return;
+    if(isRowClosed(s,r.data)) return;   // a CLOSED leg must not mask a still-open (or growing) position
+    (Array.isArray(t)?t:String(t).split(',')).forEach(x=>set.add(x));
+  }));
+  return set;
+}
+function findTrackerRow(symbol){   // locate the tracker row (any sheet) whose _tsym contains this tasty symbol
+  for(const sheet of Object.keys(SHEETS)){
+    for(const r of (GRID[sheet]||[])){
+      const t=r.data._tsym; if(!t) continue;
+      if(isRowClosed(sheet,r.data)) continue;   // only sync into the OPEN position, never a closed leg
+      const syms=(Array.isArray(t)?t:String(t).split(',')).map(s=>s.trim());
+      if(syms.includes(symbol)) return {sheet, row:r};
+    }
+  }
+  return null;
+}
+function guessCat(leg, legs){
+  if(leg.type==='Shares') return 'shares';   // equity share position → SPY Shares
+  const dte=daysTo(leg.exp);
+  if(dte > 365){
+    // long-dated LONG call + LONG put combo (same underlying+exp) → Yearly Long Term Calls
+    if(leg.dir==='Long'){
+      const combo=legs.find(o=>o!==leg && o.underlying===leg.underlying && o.exp===leg.exp && o.type!==leg.type && o.dir==='Long');
+      if(combo) return 'yltc';
+    }
+    return 'leaps';   // lone long-dated option → Leaps
+  }
+  if(leg.type==='Call'){
+    // call vertical = opposite-side call at same underlying + expiration
+    const cpart=legs.find(o=>o!==leg && o.type==='Call' && o.underlying===leg.underlying && o.exp===leg.exp && o.dir!==leg.dir);
+    if(cpart && dte>45) return 'melocs';   // long-dated call vertical → MELOCS
+    return 'daily';                        // weekly call vertical / lone call → Daily
+  }
+  // put vertical? find opposite-side put at same underlying + expiration
+  const partner=legs.find(o=>o!==leg && o.type==='Put' && o.underlying===leg.underlying && o.exp===leg.exp && o.dir!==leg.dir);
+  if(partner){
+    const longStrike = leg.dir==='Long'? num(leg.strike) : num(partner.strike);
+    const shortStrike = leg.dir==='Short'? num(leg.strike) : num(partner.strike);
+    if(longStrike > shortStrike) return 'gi';   // Gap Insurance = protective debit spread (long higher)
+    if(dte>45) return 'melocs';                 // long-dated put credit spread → MELOCS
+    return 'daily';                             // weekly credit put spread → Daily
+  }
+  return 'mp';   // standalone put
+}
+let CLOSURES=[];  // app rows that disappeared from the tastytrade feed = closed at broker
+const SEC_LABEL={mp_long:'MP Long',mp_short:'MP Short',gi_long:'GI Long',gi_short:'GI Short',leaps_long:'Leap Long',leaps_short:'Leap Short',daily:'Daily',melocs:'MELOCS',mispx:'Monthly Inc SPX',yltc:'Yearly LT',naked_calls:'Naked Calls',spy_shares:'SPY Shares',spec:'SPEC'};
+const ENTRY_KEY={mp_long:'prem_bought',mp_short:'prem_sold',gi_long:'prem_paid',gi_short:'prem_recv',leaps_long:'cost',leaps_short:'prem',daily:'credit',melocs:'credit',mispx:'credit',yltc:'cost',naked_calls:'prem_sold',spy_shares:'cost',spec:'cost'};
+function isRowClosed(sheet,d){ const M=LEG_META[sheet]; if(M) return M.closed(d); if(sheet==='daily'||sheet==='melocs'||sheet==='mispx'||sheet==='yltc'||sheet==='spec') return d.status==='Closed'||has(d.close); return false; }
+function closureDesc(sheet,d){
+  if(sheet==='yltc'||sheet==='spec'){ return ((d.ticker||'')+' '+(has(d.strike)?d.strike+(d.otype==='P'?'P':'C'):'')+' '+(d.exp||'')).trim(); }
+  if(sheet==='daily'||sheet==='melocs'||sheet==='mispx'){ const legs=[d.sp,d.lp,d.sc,d.lc].filter(x=>x!=null&&x!=='').join('/'); return ((d.ticker||'')+' '+(d.strategy||'')+' '+legs+' '+(d.exp||'')).trim(); }
+  return ((d.ticker||d.underlying||'')+' '+(d.strike||'')+(d.type?(' '+d.type):'')+' '+(d.exp||'')).trim();
+}
+// Match closed tracker rows to their tastytrade closing fills so exit prices pre-fill.
+// txns: [{action,symbol,qty,price}] — 'Buy to Close' / 'Sell to Close' etc. For each row in
+// CLOSURES sets: c.exit (per-ct exit; net debit for multi-leg credit spreads), c.auto, c.expired,
+// c.verify, c.partial. Single-symbol sheets store the raw fill price (the realized formula owns
+// the sign); multi-leg credit spreads store the signed net (buy +, sell −) = net debit to close.
+function autofillClosures(txns){
+  const close={};   // symbol -> {buyQ,buyN,sellQ,sellN}
+  (txns||[]).forEach(t=>{
+    if(!/close/i.test(t.action||'')) return;          // opening legs & non-close ignored
+    const s=String(t.symbol||'').trim(); if(!s) return;
+    const rec=close[s]||(close[s]={buyQ:0,buyN:0,sellQ:0,sellN:0});
+    const q=Math.abs(num(t.qty))||1, p=num(t.price);
+    if(/^buy/i.test(t.action)){ rec.buyQ+=q; rec.buyN+=p*q; }
+    else { rec.sellQ+=q; rec.sellN+=p*q; }
+  });
+  const net1=r=>{   // signed per-contract exit for one symbol: bought-to-close +, sold-to-close −
+    const bp=r.buyQ?r.buyN/r.buyQ:0, sp=r.sellQ?r.sellN/r.sellQ:0;
+    if(r.buyQ&&!r.sellQ) return bp;
+    if(r.sellQ&&!r.buyQ) return -sp;
+    return bp-sp;   // both (a roll on one symbol) → net
+  };
+  CLOSURES.forEach(c=>{
+    const syms=(Array.isArray(c.data._tsym)?c.data._tsym:String(c.data._tsym||'').split(','))
+                 .map(s=>String(s).trim()).filter(Boolean);
+    c.auto=false; c.expired=false; c.verify=false; c.partial=false;
+    if(!syms.length) return;
+    const matched=syms.filter(s=>close[s]);
+    if(matched.length===syms.length){
+      if(syms.length===1){ c.exit=+Math.abs(net1(close[syms[0]])).toFixed(2); }   // raw fill price
+      else { c.exit=+syms.reduce((s,y)=>s+net1(close[y]),0).toFixed(2); }         // net debit
+      c.auto=true;
+    } else if(matched.length===0){
+      // no closing Trade → usually expired worthless ($0). But a short can be ASSIGNED (settles as
+      // stock, never an option Trade), so flag shorts for a human check rather than trusting the 0.
+      c.exit=0; c.auto=true; c.expired=true;
+      c.verify=/short|daily|melocs|naked/.test(c.sheet);
+    } else {
+      c.partial=true; c.verify=true;   // some legs closed, some not (roll half-outside the window)
+    }
+  });
+}
+async function importPositions(){
+  const num=TASTY_MAP[acct]; if(!num){ toast('No tastytrade account mapped'); return; }
+  const btn=$('import_btn'); btn.disabled=true; const old=btn.textContent; btn.textContent='↓ Loading…';
+  try{
+    const r=await fetch('/api/tasty/legs/'+num).then(r=>r.json());
+    if(r.error){ toast('tastytrade: '+r.error); btn.disabled=false; btn.textContent=old; return; }
+    const feed=new Set((r.legs||[]).map(l=>l.symbol));
+    const already=importedSymbols();
+    STAGE=(r.legs||[]).map(l=>{
+      const dup=already.has(l.symbol);
+      let upd=null;
+      if(dup){   // already logged — but has the broker contract count grown since? auto-sync qty + credit.
+        const hit=findTrackerRow(l.symbol);
+        if(hit){ const cur=inti(hit.row.data.contracts,1); if(inti(l.qty,0)>cur) upd={sheet:hit.sheet, id:hit.row.id, oldQty:cur, newQty:inti(l.qty,1)}; }
+      }
+      return {...l, cat:guessCat(l, r.legs), dup, upd};
+    });
+    // detect closures: imported, not-yet-closed rows whose symbols all vanished from the broker feed
+    CLOSURES=[];
+    Object.keys(SHEETS).forEach(sheet=>{
+      (GRID[sheet]||[]).forEach(row=>{
+        const t=row.data._tsym; if(!t) return;
+        if(isRowClosed(sheet,row.data)) return;
+        const syms=(Array.isArray(t)?t:String(t).split(',')).filter(Boolean);
+        if(!syms.length || syms.some(s=>feed.has(s))) return;   // still open at broker
+        CLOSURES.push({sheet, id:row.id, data:row.data, exit:''});
+      });
+    });
+    // auto-fill exit prices from the tastytrade fill history so closures don't need re-keying
+    if(CLOSURES.length){
+      try{
+        const tx=await fetch('/api/tasty/transactions/'+num+'?days=60').then(r=>r.json());
+        if(tx && !tx.error) autofillClosures(tx.transactions||[]);
+      }catch(e){ /* non-fatal — user can still key exits manually */ }
+    }
+    renderStage();
+    const updN=STAGE.filter(l=>l.upd).length;
+    $('import_sub').textContent=(ACCOUNTS.find(a=>a.id===acct)||{}).label+' · '+STAGE.filter(l=>!l.dup).length+' new · '+updN+' qty update'+(updN===1?'':'s')+' · '+CLOSURES.length+' closed at broker';
+    $('import_modal').classList.add('show');
+  }catch(e){ toast('Import failed: '+e.message); }
+  btn.disabled=false; btn.textContent=old;
+}
+const CATOPTS=[['','— Skip —'],['mp','Money Press'],['gi','Gap Insurance'],['leaps','Leaps'],['daily','Daily Diamonds'],['melocs','MELOCS'],['mispx','Monthly Income SPX'],['yltc','Yearly LT Calls'],['spec','SPEC'],['naked','Naked Calls'],['shares','SPY Shares']];
+function renderStage(){
+  let h='';
+  if(CLOSURES.length){
+    h+='<div class="stage-sec closed">✓ Closed at tastytrade since last import — exit prices auto-filled from your fill history; edit any if needed</div>';
+    h+='<table class="stage"><thead><tr><th>Section</th><th>Trade</th><th>Ct</th><th>Entry /ct</th><th>Exit price /ct</th></tr></thead><tbody>';
+    CLOSURES.forEach((c,i)=>{
+      const val=(c.exit!=null&&c.exit!=='')?c.exit:'';
+      let tag='';
+      if(c.partial)      tag='<div style="font-size:10px;color:var(--red)">partial fills — enter net exit</div>';
+      else if(c.verify)  tag='<div style="font-size:10px;color:var(--red)">no closing fill — expired worthless? verify</div>';
+      else if(c.expired) tag='<div style="font-size:10px;color:#92700a">expired → $0</div>';
+      else if(c.auto)    tag='<div style="font-size:10px;color:#0a7d3c">✓ auto-filled from tastytrade</div>';
+      h+=`<tr><td><span class="stage-badge">${SEC_LABEL[c.sheet]||c.sheet}</span></td><td>${closureDesc(c.sheet,c.data)}</td><td>${inti(c.data.contracts,1)}</td><td>${c.data[ENTRY_KEY[c.sheet]]!=null?c.data[ENTRY_KEY[c.sheet]]:'—'}</td>`+
+         `<td><input type="number" step="0.01" placeholder="0.00" value="${val}" style="width:82px" onchange="CLOSURES[${i}].exit=this.value">${tag}</td></tr>`;
+    });
+    h+='</tbody></table>';
+  }
+  const newLegs=STAGE.filter(l=>!l.dup);
+  if(newLegs.length || !CLOSURES.length) h+='<div class="stage-sec">Open positions — tag &amp; import</div>';
+  h+='<table class="stage"><thead><tr><th>Underlying</th><th>Type</th><th>Strike</th><th>Exp</th><th>Qty</th><th>Dir</th><th>Premium</th><th>Category</th><th></th></tr></thead><tbody>';
+  STAGE.forEach((l,i)=>{
+    if(l.dup){
+      const badge=l.upd
+        ? `<span class="stage-badge" style="background:#DBEAFE;color:#1D4ED8">qty ${l.upd.oldQty} → ${l.upd.newQty} · will update</span>`
+        : `<span class="stage-badge">already imported</span>`;
+      h+=`<tr class="dup"><td>${l.underlying}</td><td>${l.type}</td><td>${l.strike}</td><td>${l.exp}</td><td>${l.qty}</td><td>${l.dir}</td><td>${l.premium}</td><td colspan="2">${badge}</td></tr>`; return;
+    }
+    h+=`<tr><td>${l.underlying}</td><td>${l.type}</td><td>${l.strike}</td><td>${l.exp}</td>`+
+       `<td><input type="number" min="1" value="${l.qty}" style="width:54px" onchange="STAGE[${i}].qty=parseInt(this.value)||1"></td>`+
+       `<td>${l.dir}</td><td>${l.premium}</td>`+
+       `<td><select onchange="STAGE[${i}].cat=this.value">`+CATOPTS.map(o=>`<option value="${o[0]}" ${l.cat===o[0]?'selected':''}>${o[1]}</option>`).join('')+`</select></td>`+
+       `<td><button class="stage-split" onclick="splitLeg(${i})" title="Split into two lines to tag across strategies">⎘ Split</button></td></tr>`;
+  });
+  h+='</tbody></table>';
+  $('stage_host').innerHTML=h;
+}
+function splitLeg(i){
+  const copy={...STAGE[i]};   // duplicate; set the qty on each line, tag each separately
+  STAGE.splice(i+1,0,copy);
+  renderStage();
+}
+async function fileImport(){
+  const t=today();
+  const toFile=STAGE.filter(l=>!l.dup && l.cat);
+  const touched=new Set();
+  // 0) reconcile closures — mark rows closed & record exit so realized P&L flows into totals
+  let closedN=0;
+  for(const c of CLOSURES){
+    if(c.exit===''||isNaN(parseFloat(c.exit))) continue;   // skip any without an exit entered
+    const d=c.data, ev=parseFloat(c.exit);
+    if(c.sheet.startsWith('mp')){ d.exit_prem=ev; d.status='Closed'; }
+    else if(c.sheet.startsWith('gi')){ d.exit_prem=ev; d.exit_date=t; }
+    else if(c.sheet.startsWith('leaps')){ d.exit_prem=ev; d.close=t; }
+    else if(c.sheet==='daily'||c.sheet==='melocs'){ d.exit_debit=ev; d.close=t; }
+    else if(c.sheet==='mispx'){ d.exit_debit=ev; d.close=t; }
+    else if(c.sheet==='yltc'||c.sheet==='spec'){ d.exit_prem=ev; d.status='Closed'; d.close=t; }
+    else if(c.sheet==='naked_calls'){ d.exit_prem=ev; d.status='Closed'; }
+    else if(c.sheet==='spy_shares'){ d.sale=ev; d.close=t; d.status='Closed'; }
+    scheduleSave(c.id,d); touched.add(c.sheet); closedN++;
+  }
+  // 0b) qty sync — a symbol already logged but the broker now shows MORE contracts: bump the row's
+  //     contract count to the broker total, and (single-symbol leg sheets) set the credit to tastytrade's blended avg.
+  let updN=0;
+  for(const l of STAGE){
+    if(!l.upd) continue;
+    const {sheet,id,newQty}=l.upd;
+    const row=(GRID[sheet]||[]).find(r=>r.id===id); if(!row) continue;
+    row.data.contracts=newQty;
+    const combined=(sheet==='daily'||sheet==='melocs'||sheet==='mispx'||sheet==='yltc'||sheet==='spec');
+    if(!combined){ const k=ENTRY_KEY[sheet]; if(k) row.data[k]=l.premium; }   // net credit on combined rows is per-spread, leave it
+    scheduleSave(id,row.data); touched.add(sheet); updN++;
+  }
+  if(!toFile.length && !closedN && !updN){ toast('Nothing to import, update, or close'); return; }
+  const mkRow=async(sheet,data)=>{
+    data._tsym=data._tsym||''; 
+    const r=await fetch('/api/diamonds-test/'+sheet,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,account:acct})}).then(r=>r.json());
+    (GRID[sheet]=GRID[sheet]||[]).push({id:r.id,data}); touched.add(sheet);
+  };
+  // 1) leg-based categories
+  for(const l of toFile){
+    const under = (l.underlying==='XSP') ? 'XSP' : 'SPX';
+    if(l.cat==='mp'){
+      if(l.dir==='Long') await mkRow('mp_long',{date_purchased:t,exp:l.exp,strike:l.strike,contracts:l.qty,prem_bought:l.premium,status:'Open',underlying:under,_tsym:l.symbol});
+      else await mkRow('mp_short',{date_sold:t,exp:l.exp,strike:l.strike,contracts:l.qty,prem_sold:l.premium,status:'Open',underlying:under,_tsym:l.symbol});
+    } else if(l.cat==='gi'){
+      if(l.dir==='Long') await mkRow('gi_long',{purchase:t,exp:l.exp,ticker:l.underlying,contracts:l.qty,strike:l.strike,prem_paid:l.premium,_tsym:l.symbol});
+      else await mkRow('gi_short',{sold_date:t,exp:l.exp,ticker:l.underlying,contracts:l.qty,strike:l.strike,prem_recv:l.premium,_tsym:l.symbol});
+    } else if(l.cat==='leaps'){
+      if(l.dir==='Long') await mkRow('leaps_long',{open:t,exp:l.exp,ticker:l.underlying,contracts:l.qty,strike:l.strike,cost:l.premium,_tsym:l.symbol});
+      else await mkRow('leaps_short',{open:t,exp:l.exp,ticker:l.underlying,contracts:l.qty,strike:l.strike,prem:l.premium,_tsym:l.symbol});
+    } else if(l.cat==='naked'){
+      await mkRow('naked_calls',{date_sold:t,exp:l.exp,ticker:l.underlying,contracts:l.qty,strike:l.strike,prem_sold:l.premium,status:'Open',_tsym:l.symbol});
+    } else if(l.cat==='shares'){
+      await mkRow('spy_shares',{open:t,ticker:l.underlying,shares:l.qty,cost:l.premium,status:'Open',_tsym:l.symbol});
+    }
+  }
+  // 2) Daily Diamonds — combine legs into ONE row per spread/IC, grouped by underlying+exp.
+  //    put vertical → PCS · call vertical → CCS · both put & call verticals same exp → Iron Condor (IC).
+  //    MELOCS (2-leg call/put verticals) file the same way, into their own sheet.
+  const combineVerticals=async(cat,sheet)=>{
+    const groups={};
+    toFile.filter(l=>l.cat===cat).forEach(l=>{ const k=l.underlying+'|'+l.exp; (groups[k]=groups[k]||[]).push(l); });
+    for(const k in groups){
+      const g=groups[k];
+      const d={open:t,exp:g[0].exp,ticker:g[0].underlying,contracts:Math.max(...g.map(x=>inti(x.qty,1))),_tsym:g.map(x=>x.symbol).join(',')};
+      let shortP=0,longP=0,hasPut=false,hasCall=false;
+      g.forEach(l=>{
+        const isCall=l.type==='Call', isShort=l.dir==='Short', pr=Math.abs(l.premium);
+        if(isCall){ hasCall=true; if(isShort){d.sc=l.strike; shortP+=pr;} else {d.lc=l.strike; longP+=pr;} }
+        else      { hasPut=true;  if(isShort){d.sp=l.strike; shortP+=pr;} else {d.lp=l.strike; longP+=pr;} }
+      });
+      d.strategy = (hasPut&&hasCall)?'IC':(hasCall?'CCS':'PCS');
+      d.credit = Math.round((shortP-longP)*100)/100;   // net credit per contract (short premium − long premium)
+      await mkRow(sheet,d);
+    }
+  };
+  await combineVerticals('daily','daily');
+  await combineVerticals('melocs','melocs');
+  // Monthly Income SPX — a single expiration can hold a LADDER of several credit spreads
+  // (e.g. 6650/6630, 6700/6680, 6750/6725 all on Aug 31). Pair each short with the nearest
+  // protective long instead of collapsing them into one row.
+  {
+    const groups={};
+    toFile.filter(l=>l.cat==='mispx').forEach(l=>{ const k=l.underlying+'|'+l.exp; (groups[k]=groups[k]||[]).push(l); });
+    // pair shorts→longs; `below=true` (puts): long strike must be < short; else (calls) long > short.
+    const pairLegs=async(shorts,longs,cp,below)=>{
+      const S=shorts.slice().sort((a,b)=>below?num(b.strike)-num(a.strike):num(a.strike)-num(b.strike));
+      const L=longs.slice().sort((a,b)=>below?num(b.strike)-num(a.strike):num(a.strike)-num(b.strike));
+      const used=new Set(); let leftover=0;
+      for(const s of S){
+        let pick=-1;
+        for(let j=0;j<L.length;j++){ if(used.has(j))continue; const ok=below?(num(L[j].strike)<num(s.strike)):(num(L[j].strike)>num(s.strike)); if(ok){ pick=j; break; } }
+        if(pick<0){ leftover++; continue; }
+        used.add(pick); const l=L[pick];
+        const ct=Math.min(inti(s.qty,1),inti(l.qty,1));
+        const credit=Math.round((Math.abs(s.premium)-Math.abs(l.premium))*100)/100;
+        const d={open:t,exp:s.exp,ticker:s.underlying,contracts:ct,strategy:cp==='P'?'PCS':'CCS',status:'Open',credit,_tsym:[s.symbol,l.symbol].join(',')};
+        if(cp==='P'){ d.sp=s.strike; d.lp=l.strike; } else { d.sc=s.strike; d.lc=l.strike; }
+        await mkRow('mispx',d);
+      }
+      return leftover + (L.length-used.size);
+    };
+    let miLeft=0;
+    for(const k in groups){
+      const g=groups[k];
+      miLeft+=await pairLegs(g.filter(l=>l.type==='Put'&&l.dir==='Short'),  g.filter(l=>l.type==='Put'&&l.dir==='Long'),  'P', true);
+      miLeft+=await pairLegs(g.filter(l=>l.type==='Call'&&l.dir==='Short'), g.filter(l=>l.type==='Call'&&l.dir==='Long'), 'C', false);
+    }
+    if(miLeft) console.warn('Monthly Income SPX: '+miLeft+' leg(s) could not be paired into a spread and were skipped.');
+  }
+  // Yearly Long Term Calls — file each leg (long call OR long put) as its own row, matching tastytrade.
+  for(const l of toFile.filter(l=>l.cat==='yltc')){
+    await mkRow('yltc',{open:t,exp:l.exp,ticker:l.underlying,contracts:inti(l.qty,1),status:'Open',
+      otype:l.type==='Call'?'C':'P',strike:l.strike,cost:Math.abs(l.premium),_tsym:l.symbol});
+  }
+  // SPEC Trades — file each speculative bought call/put as its own row.
+  for(const l of toFile.filter(l=>l.cat==='spec')){
+    await mkRow('spec',{open:t,exp:l.exp,ticker:l.underlying,contracts:inti(l.qty,1),status:'Open',
+      otype:l.type==='Call'?'C':'P',strike:l.strike,cost:Math.abs(l.premium),_tsym:l.symbol});
+  }
+  touched.forEach(s=>renderGrid(s)); renderAnalytics();
+  $('import_modal').classList.remove('show');
+  toast('Imported '+toFile.length+' new · '+updN+' qty updated · closed '+closedN+' at broker — '+(ACCOUNTS.find(a=>a.id===acct)||{}).label);
+}
+
+async function pullFromTasty(){
+  const num=TASTY_MAP[acct]; const btn=$('pull_btn');
+  if(!num){ toast('No tastytrade account mapped for this one'); return; }
+  if(!anRow){ toast('Analytics not ready yet'); return; }
+  btn.disabled=true; const old=btn.textContent; btn.textContent='⟳ Pulling…';
+  try{
+    const parts=[];
+    const r=await fetch('/api/tasty/summary/'+num).then(r=>r.json());
+    if(r.error){ toast('tastytrade: '+r.error); }
+    else{
+      let hits=[];
+      if(r.net_liq!=null){ anRow.data.net_liq=Math.round(r.net_liq*100)/100; hits.push('Net Liq'); }
+      if(r.buying_power!=null){ anRow.data.bp=Math.round(r.buying_power*100)/100; hits.push('BP'); }
+      if(hits.length){ scheduleSave(anRow.id,anRow.data); renderAnalytics(); parts.push(hits.join(' & ')); }
+    }
+    // Also refresh live option marks → fill Cur Call/Put (Yearly LT Calls) and
+    // Cur Mark/ct (MELOCS) so their live P&L updates.
+    let markN=0,meN=0,nkN=0,miN=0,mpShortN=0,mpLongN=0;
+    try{
+      const mr=await fetch('/api/tasty/marks/'+num).then(r=>r.json());
+      if(mr && !mr.error){ const M=mr.marks||{}; markN=applyMarksToYLTC(M)+applyMarksToSpec(M); meN=applyMarksToMELOCS(M); miN=applyMarksToMISPX(M); nkN=applyMarksToNaked(M);
+        mpShortN=applyMarksToShort(M,'mp_short','P')+applyMarksToShort(M,'gi_short','P')+applyMarksToShort(M,'leaps_short','C');
+        mpLongN=applyMarksToShort(M,'mp_long','P')+applyMarksToShort(M,'gi_long','P')+applyMarksToShort(M,'leaps_long','C'); }
+    }catch(_){ /* marks are best-effort; net-liq/BP already applied */ }
+    let shN=0;
+    try{ shN=await applySharePrices(); }catch(_){ /* share price is best-effort */ }
+    try{ renderDeltaPanel(); }catch(_){}   // refresh the Delta panel's live Open P&L columns
+    try{ pullAccountPnl(); }catch(_){}     // refresh the whole-account P/L header
+
+    if(markN) parts.push('live marks for '+markN+' Yearly LT Calls row'+(markN===1?'':'s'));
+    if(meN) parts.push(meN+' MELOCS row'+(meN===1?'':'s'));
+    if(miN) parts.push(miN+' Monthly Income SPX row'+(miN===1?'':'s'));
+    if(nkN) parts.push(nkN+' Naked Calls row'+(nkN===1?'':'s'));
+    if(mpShortN) parts.push(mpShortN+' short leg'+(mpShortN===1?'':'s')+' (MP / GI / Leaps)');
+    if(mpLongN) parts.push(mpLongN+' long/protection leg'+(mpLongN===1?'':'s')+' (MP / GI / Leaps)');
+    if(shN) parts.push('live price for '+shN+' SPY Shares row'+(shN===1?'':'s'));
+    toast(parts.length?('Pulled '+parts.join(' · ')+' from tastytrade'):'Nothing updated — market may be closed');
+  }catch(e){ toast('Pull failed: '+e.message); }
+  btn.disabled=false; btn.textContent=old;
+}
+// Whole-account P/L (ALL open positions in the tastytrade account, not just imported rows).
+// Day P/L = live mark vs prior-day close; Open P/L = live mark vs average open price.
+// Options priced from the DXLink marks feed, shares from /api/price. Shorts flip sign.
+async function pullAccountPnl(){
+  const numAcct=TASTY_MAP[acct]; const btn=$('pnl_btn');
+  const dayEl=$('pnl_day'), openEl=$('pnl_open'), subEl=$('pnl_sub');
+  if(!numAcct){ if(subEl)subEl.textContent='no account'; return; }
+  if(btn){ btn.disabled=true; btn.textContent='…'; }
+  try{
+    const lr=await fetch('/api/tasty/legs/'+numAcct).then(r=>r.json());
+    if(lr.error){ if(subEl)subEl.textContent='error'; toast('P/L: '+lr.error); }
+    else{
+      const legs=lr.legs||[];
+      let M={};
+      try{ const mr=await fetch('/api/tasty/marks/'+numAcct).then(r=>r.json()); if(mr&&!mr.error) M=mr.marks||{}; }catch(_){}
+      const shT=[...new Set(legs.filter(l=>l.type==='Shares').map(l=>(l.underlying||l.symbol||'').toUpperCase()).filter(Boolean))];
+      const P={};
+      await Promise.all(shT.map(async t=>{ try{ const j=await fetch('/api/price/'+encodeURIComponent(t)).then(r=>r.json()); if(j&&j.price!=null) P[t]=j.price; }catch(_){} }));
+      let dayPL=0, openPL=0, priced=0, total=0;
+      legs.forEach(l=>{
+        total++;
+        const qty=Math.abs(num(l.qty))||1, mult=num(l.mult)||(l.type==='Shares'?1:100);
+        const sign=(String(l.dir||'').toLowerCase()==='short')?-1:1;
+        let mark=null;
+        if(l.type==='Shares'){ mark=P[(l.underlying||l.symbol||'').toUpperCase()]; }
+        else { const q=M[String(l.symbol||'').trim()]; mark=(q&&q.mid!=null)?q.mid:null; }
+        if(mark==null) return;                 // no live price for this leg → skip
+        priced++;
+        const open=num(l.premium);
+        const dayRef=(num(l.close)>0)?num(l.close):open;   // no prior close (same-day) → use entry
+        openPL += sign*(mark-open)*qty*mult;
+        dayPL  += sign*(mark-dayRef)*qty*mult;
+      });
+      const paint=(el,v)=>{ el.textContent=(v>0?'+':'')+fMoney(v); el.className=(v>0?'up':(v<0?'dn':'neu')); };
+      if(priced){ paint(dayEl,dayPL); paint(openEl,openPL); }
+      else { dayEl.textContent='—'; openEl.textContent='—'; dayEl.className='neu'; openEl.className='neu'; }
+      if(subEl){ const t=new Date(),p=x=>String(x).padStart(2,'0');
+        subEl.textContent=priced?('as of '+p(t.getHours())+':'+p(t.getMinutes())+(priced<total?(' · '+(total-priced)+' unpriced'):'')):'no live marks — market may be closed'; }
+    }
+  }catch(e){ if(subEl)subEl.textContent='failed'; toast('P/L pull failed: '+e.message); }
+  if(btn){ btn.disabled=false; btn.textContent='⟳'; }
+}
+function resetAccountPnl(){ ['pnl_day','pnl_open'].forEach(id=>{const e=$(id);if(e){e.textContent='—';e.className='neu';}}); const s=$('pnl_sub'); if(s)s.textContent=''; }
+let acct='individual';
+try{ acct=localStorage.getItem('dt_account')||'individual'; }catch(e){}
+function renderAccountPicker(){
+  const sel=$('acct_select'); if(!sel) return;
+  sel.innerHTML=ACCOUNTS.map(a=>`<option value="${a.id}" ${a.id===acct?'selected':''}>${a.label}</option>`).join('');
+  const lbl=(ACCOUNTS.find(a=>a.id===acct)||{}).label||'';
+  const h=$('acct_hint'); if(h) h.textContent='Showing '+lbl+' — trades, analytics & totals are separate per account.';
+}
+async function switchAccount(id){
+  acct=id; try{ localStorage.setItem('dt_account',id); }catch(e){}
+  renderAccountPicker();
+  GREEKS={};   // stale deltas from the previous account must not linger
+  // blank everything immediately so nothing from the previous account lingers
+  Object.keys(SHEETS).forEach(s=>{ GRID[s]=[]; renderGrid(s); });
+  anRow=null; renderAnalytics(); renderDeltaPanel(); resetAccountPnl();
+  await reloadAll();
+}
+async function reloadAll(){
+  await Promise.all([loadAnalyticsInputs(), ...Object.keys(SHEETS).map(loadSheet)]);
+  renderAnalytics(); renderDeltaPanel();
+}
+
+// ── Index price header (XSP / SPX / SPY) ──────────────────────────────────────
+async function loadPrices(){
+  const pfmt=v=>v==null||isNaN(v)?'—':Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  try{
+    const [spx,spy]=await Promise.all([
+      fetch('/api/price/SPX').then(r=>r.json()).catch(()=>({})),
+      fetch('/api/price/SPY').then(r=>r.json()).catch(()=>({}))
+    ]);
+    const spxP=(spx&&spx.price!=null)?Number(spx.price):null;
+    const spyP=(spy&&spy.price!=null)?Number(spy.price):null;
+    if($('px_spx')) $('px_spx').textContent=pfmt(spxP);
+    if($('px_spy')) $('px_spy').textContent=pfmt(spyP);
+    if($('px_xsp')) $('px_xsp').textContent=spxP!=null?pfmt(spxP/10):'—';   // XSP = SPX/10
+  }catch(e){ /* leave last-known values */ }
+}
+// ── Delta by Strategy (live greeks via DXLink) ────────────────────────────────
+let GREEKS={};   // OCC -> {delta, theta}
+// The Analytics delta panel covers Diamonds strategies only; Trader Travis
+// (Monthly Income SPX, Yearly LT Calls, Naked Calls, SPY Shares) lives on its own tab.
+const DIAMONDS_STRATS=['Money Press','Daily Diamonds','Gap Insurance','Leaps','MELOCS','SPEC Trades'];
+async function pullGreeks(){
+  const numAcct=TASTY_MAP[acct]; if(!numAcct){ toast('No tastytrade account mapped'); return; }
+  const btn=$('pullgreeks_btn'); if(btn){ btn.disabled=true; btn.textContent='⟳ Pulling…'; }
+  try{
+    const r=await fetch('/api/tasty/greeks/'+numAcct).then(r=>r.json());
+    if(r.error){ toast('Greeks: '+r.error); }
+    else{
+      GREEKS=r.greeks||{}; renderDeltaPanel();
+      // auto-fill the Portfolio Delta / Theta analytics inputs from the live pull
+      const legs=deltaLegRows().filter(l=>DIAMONDS_STRATS.includes(l.strat)); let nd=0,nt=0,anyD=false,anyT=false;
+      legs.forEach(l=>{ if(l.total!=null){nd+=l.total;anyD=true;} if(l.thetaTot!=null){nt+=l.thetaTot;anyT=true;} });
+      if(anRow){
+        if(anyD) anRow.data.delta=Math.round(nd*100)/100;   // net Δ (raw, matches the panel)
+        if(anyT) anRow.data.theta=Math.round(nt*100)/100;   // net theta, $/day
+        if(anyD||anyT){ scheduleSave(anRow.id,anRow.data); renderAnalytics(); }
+      }
+      const nn=Object.keys(GREEKS).length;
+      toast(nn?('Pulled greeks for '+nn+' option(s) — Portfolio Δ/Θ updated'):'No greeks returned — market may be closed');
+    }
+  }catch(e){ toast('Pull greeks failed: '+e.message); }
+  const b2=$('pullgreeks_btn'); if(b2){ b2.disabled=false; b2.textContent='⟳ Pull Greeks'; }
+}
+function deltaLegRows(){
+  const out=[];
+  // MP / GI / Leaps — one leg per row
+  const addLeg=(strat,sheet,dir)=>{
+    (GRID[sheet]||[]).forEach(r=>{
+      const d=r.data; if(isRowClosed(sheet,d)) return;
+      const under=(d.underlying||d.ticker||'').toUpperCase();
+      const g=GREEKS[String(d._tsym||'').trim()];
+      const optDelta=(g&&g.delta!=null)?g.delta:null, optTheta=(g&&g.theta!=null)?g.theta:null;
+      const ct=inti(d.contracts,1), type=(sheet.indexOf('leaps')===0)?'C':'P';
+      // Max Profit / Open P&L / % Captured — computed for short (credit) legs from Cur Value/ct.
+      const PREMK={mp_short:'prem_sold',gi_short:'prem_recv',leaps_short:'prem'};
+      const COSTK={mp_long:'prem_bought',gi_long:'prem_paid',leaps_long:'cost'};
+      let maxP=null,oPnl=null,cap=null;
+      if(dir<0){ const pk=PREMK[sheet]; if(pk&&has(d[pk])){ const prem=num(d[pk]); maxP=prem*ct*100;
+        if(has(d.cur_val)){ oPnl=(prem-num(d.cur_val))*ct*100; cap=prem?(prem-num(d.cur_val))/prem:null; } } }
+      else { const ck=COSTK[sheet]; if(ck&&has(d.cur_val)) oPnl=(num(d.cur_val)-num(d[ck]))*ct*100; }   // long: live value − cost paid
+      out.push({strat, under, exp:(d.exp||''),
+                label:(under+' '+(d.strike!=null?d.strike:'?')+' '+(type==='P'?'Put':'Call')+' '+(dir>0?'Long':'Short')),
+                ct, perCt:(optDelta!=null?optDelta*dir:null), total:(optDelta!=null?optDelta*dir*ct:null),
+                maxP, oPnl, cap, long:(dir>0),
+                thetaTot:(optTheta!=null?optTheta*dir*ct*100:null), hasSym:!!(d._tsym)});
+    });
+  };
+  addLeg('Money Press','mp_long',1);  addLeg('Money Press','mp_short',-1);
+  addLeg('Gap Insurance','gi_long',1); addLeg('Gap Insurance','gi_short',-1);
+  addLeg('Leaps','leaps_long',1);      addLeg('Leaps','leaps_short',-1);
+  // Daily Diamonds + MELOCS — combined spread/IC rows: net greeks across the row's legs
+  const addCombined=(sheet,strat)=>{
+    (GRID[sheet]||[]).forEach(r=>{
+      const d=r.data; if(has(d.close)) return;
+      const legs=[['sp','P',-1],['lp','P',1],['sc','C',-1],['lc','C',1]].filter(([k])=>has(d[k]));
+      if(!legs.length) return;
+      const parts=String(d._tsym||'').split(',').map(s=>s.trim()).filter(Boolean);
+      const gAt=(cp,strike)=>{ for(const s of parts){ const p=occParse(s); if(p&&p.cp===cp&&Math.abs(p.strike-num(strike))<0.001) return GREEKS[s]; } return null; };
+      let nd=0,nt=0,anyD=false,anyT=false;
+      legs.forEach(([k,cp,dir])=>{ const g=gAt(cp,d[k]); if(g&&g.delta!=null){nd+=g.delta*dir;anyD=true;} if(g&&g.theta!=null){nt+=g.theta*dir;anyT=true;} });
+      const ct=inti(d.contracts,1);
+      out.push({strat, under:(d.ticker||'').toUpperCase(), exp:(d.exp||''),
+                label:((d.ticker||'')+' '+dailyTag(d)),
+                ct, perCt:(anyD?nd:null), total:(anyD?nd*ct:null),
+                maxP:ddMaxProfit(d), oPnl:melocsLivePnl(d), cap:melocsCaptured(d),
+                thetaTot:(anyT?nt*ct*100:null), hasSym:!!(d._tsym)});
+    });
+  };
+  addCombined('daily','Daily Diamonds');
+  addCombined('melocs','MELOCS');
+  addCombined('mispx','Monthly Income SPX');
+  // Yearly Long Term Calls — one row per leg (long call OR long put, dir +1)
+  (GRID.yltc||[]).forEach(r=>{
+    const d=r.data; if(isRowClosed('yltc',d)) return;
+    if(!has(d.strike)&&!d._tsym) return;
+    const g=GREEKS[String(d._tsym||'').trim()];
+    const optDelta=(g&&g.delta!=null)?g.delta:null, optTheta=(g&&g.theta!=null)?g.theta:null;
+    const ct=inti(d.contracts,1);
+    const yPnl=has(d.cur_mark)?(num(d.cur_mark)-num(d.cost))*ct*100:null;
+    out.push({strat:'Yearly LT Calls', under:(d.ticker||'').toUpperCase(), exp:(d.exp||''),
+              label:((d.ticker||'')+' '+(has(d.strike)?d.strike+(d.otype==='P'?'P':'C'):'')+' Long'),
+              ct, perCt:optDelta, total:(optDelta!=null?optDelta*ct:null),
+              maxP:null, oPnl:yPnl, cap:null, long:true,
+              thetaTot:(optTheta!=null?optTheta*ct*100:null), hasSym:!!(d._tsym)});
+  });
+  // SPEC Trades — one row per speculative bought call/put (long, dir +1)
+  (GRID.spec||[]).forEach(r=>{
+    const d=r.data; if(isRowClosed('spec',d)) return;
+    if(!has(d.strike)&&!d._tsym) return;
+    const g=GREEKS[String(d._tsym||'').trim()];
+    const optDelta=(g&&g.delta!=null)?g.delta:null, optTheta=(g&&g.theta!=null)?g.theta:null;
+    const ct=inti(d.contracts,1);
+    const sPnl=has(d.cur_mark)?(num(d.cur_mark)-num(d.cost))*ct*100:null;
+    out.push({strat:'SPEC Trades', under:(d.ticker||'').toUpperCase(), exp:(d.exp||''),
+              label:((d.ticker||'')+' '+(has(d.strike)?d.strike+(d.otype==='P'?'P':'C'):'')+' Long'),
+              ct, perCt:optDelta, total:(optDelta!=null?optDelta*ct:null),
+              maxP:null, oPnl:sPnl, cap:null, long:true,
+              thetaTot:(optTheta!=null?optTheta*ct*100:null), hasSym:!!(d._tsym)});
+  });
+  return out;
+}
+function renderDeltaPanel(){
+  const host=$('delta_panel'); if(!host) return;
+  const rows=deltaLegRows(), mapped=!!TASTY_MAP[acct];
+  const strats=DIAMONDS_STRATS;
+  const fD=v=>v==null?'—':(v>=0?'+':'')+Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const cls=v=>v==null?'':(v>=0?'up':'dn');
+  const fMo=v=>v==null?'—':fMoney(v);
+  const fPc=v=>v==null?'—':fPct(v);
+  // Expiration cell: bold; bold+red if it expires today or tomorrow; weekday spelled out.
+  const WD=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const expCell=(exp)=>{
+    const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(exp||''));
+    if(!m) return '<b>—</b>';
+    const d=new Date(+m[1],+m[2]-1,+m[3]);
+    const today=new Date(); today.setHours(0,0,0,0);
+    const diff=Math.round((d-today)/864e5);
+    const soon=(diff===0||diff===1);
+    return `<b${soon?' style="color:var(--red)"':''}>${exp} ${WD[d.getDay()]}</b>`;
+  };
+  let h='<div class="deltahd"><h3>Delta by Strategy</h3>'+(mapped?'<button id="pullgreeks_btn" class="btn-mini" onclick="pullGreeks()" title="Fetch live option greeks from tastytrade">⟳ Pull Greeks</button>':'')+'<span style="margin-left:auto;font-size:9px;color:var(--muted2);font-family:var(--mono)">build maxprofit-total</span></div>';
+  let net=0, anyG=false, missing=0, mixSPX=false;
+  strats.forEach(s=>{
+    const legs=rows.filter(r=>r.strat===s).slice().sort((a,b)=>{
+      const ea=String(a.exp||''), eb=String(b.exp||'');
+      if(!ea&&!eb) return 0; if(!ea) return 1; if(!eb) return -1;
+      return ea<eb?-1:(ea>eb?1:0);
+    });
+    let stot=0, has1=false;
+    let smaxp=0, hasMaxp=false, spnl=0, hasPnl=false;
+    const unders=new Set();
+    const rowHTML=(l,noBox)=>`<tr class="${(!noBox&&l.long)?'longleg':''}"><td>${l.label} ×${l.ct}</td><td>${expCell(l.exp)}</td>`+
+        `<td class="dr ${l.maxP>0?'up':''}">${fMo(l.maxP)}</td>`+
+        `<td class="dr ${cls(l.oPnl)}">${fMo(l.oPnl)}</td>`+
+        `<td class="dr ${cls(l.cap)}">${fPc(l.cap)}</td>`+
+        `<td class="dr ${cls(l.perCt)}">${fD(l.perCt)}</td><td class="dr ${cls(l.total)}">${fD(l.total)}</td></tr>`;
+    legs.forEach(l=>{
+      if(l.total!=null){ stot+=l.total; has1=true; anyG=true; }
+      if(l.maxP!=null){ smaxp+=l.maxP; hasMaxp=true; }
+      if(l.oPnl!=null){ spnl+=l.oPnl; hasPnl=true; }
+      if(!l.hasSym) missing++;
+      unders.add(l.under);
+    });
+    // helper: build shaded/boxed tbody groups from [class,label,legs] specs (rows get no blue long-box)
+    const boxedBody=specs=>{ let out='',first=true;
+      specs.forEach(([k,label,arr])=>{ if(!arr.length) return;
+        if(!first) out+='<tbody class="ddgap"><tr><td colspan="7"></td></tr></tbody>';
+        first=false;
+        out+=`<tbody class="ddgrp ${k}"><tr class="ddgrp-h"><td colspan="7">${label}</td></tr>`+arr.map(l=>rowHTML(l,true)).join('')+'</tbody>';
+      });
+      return out; };
+    let body;
+    if(s==='Daily Diamonds'){
+      // PCS (bullish/green) vs CCS (bearish/pink)
+      const catOf=l=>/\bCCS\b/i.test(l.label)?'ccs':(/\bPCS\b/i.test(l.label)?'pcs':'other');
+      const grp={pcs:[],ccs:[],other:[]}; legs.forEach(l=>grp[catOf(l)].push(l));
+      body=boxedBody([['pcs','PCS · bullish',grp.pcs],['ccs','CCS · bearish',grp.ccs],['other','Iron condor / other',grp.other]]);
+    } else if(s==='Money Press'){
+      // Income Puts (short/green) on top, Long Protection (long/red) below
+      body=boxedBody([['pcs','Income Puts',legs.filter(l=>!l.long)],['ccs','Long Protection',legs.filter(l=>l.long)]]);
+    } else if(s==='Gap Insurance'){
+      // GAP Offset (short/green) on top, GAP Insurance (long/red) below
+      body=boxedBody([['pcs','GAP Offset',legs.filter(l=>!l.long)],['ccs','GAP Insurance',legs.filter(l=>l.long)]]);
+    } else {
+      body='<tbody>'+legs.map(rowHTML).join('')+'</tbody>';
+    }
+    if(unders.has('SPX')&&unders.has('XSP')) mixSPX=true;
+    if(has1) net+=stot;
+    h+=`<div class="deltastrat"><div class="deltastrat-hd"><b>${s}</b>${hasMaxp?`<span class="val up">Max Profit ${fMo(smaxp)}</span>`:''}<span class="val ${cls(has1?stot:null)}">Total Δ ${has1?fD(stot):'—'}</span></div>`;
+    const foot=(hasMaxp||hasPnl)?`<tfoot><tr><td>Total</td><td></td><td class="dr up">${hasMaxp?fMo(smaxp):'—'}</td><td class="dr ${cls(hasPnl?spnl:null)}">${hasPnl?fMo(spnl):'—'}</td><td class="dr"></td><td class="dr"></td><td class="dr ${cls(has1?stot:null)}">${has1?fD(stot):'—'}</td></tr></tfoot>`:'';
+    h+=legs.length?`<table class="deltatbl"><thead><tr><th>Leg</th><th>Exp</th><th class="dr">Max Profit</th><th class="dr">Open P&L</th><th class="dr">% Capt</th><th class="dr">Δ / ct</th><th class="dr">Total Δ</th></tr></thead>${body}${foot}</table>`:'';
+    h+='</div>';
+  });
+  h+=`<div class="deltanet"><span>Diamonds Net Δ</span><span class="val ${cls(anyG?net:null)}">${anyG?fD(net):'—'}</span></div>`;
+  if(!anyG) h+='<div class="deltaempty" style="margin-top:6px">Click ⟳ Pull Greeks to load live deltas'+(mapped?'':' (map a tastytrade account first)')+'. Long puts show negative delta; short puts positive.</div>';
+  if(missing) h+=`<div class="deltaempty">${missing} hand-entered leg(s) without a tastytrade symbol are excluded (no live greek — re-import to tag them).</div>`;
+  if(mixSPX) h+='<div class="deltaempty">Note: a strategy mixes XSP and SPX legs — their deltas are in different underlying units (1 SPX pt ≈ 10 XSP pts), so the raw total understates SPX exposure ~10×. Tell me if you want it normalized.</div>';
+  host.innerHTML=h;
+}
+let ddGridOpen=false;
+function toggleDailyGrid(){
+  ddGridOpen=!ddGridOpen;
+  const w=$('daily_gridwrap'), b=$('dd_toggle');
+  if(w) w.style.display=ddGridOpen?'':'none';
+  if(b) b.textContent=ddGridOpen?'▾ Hide trade detail':'▸ Show trade detail';
+}
+async function init(){
+  renderAccountPicker();
+  renderMPSubtabs();
+  loadPrices(); setInterval(loadPrices, 60000);
+  await Promise.all([loadAnalyticsInputs(),
+    ...Object.keys(SHEETS).map(loadSheet)]);
+  renderAnalytics(); renderDeltaPanel();
+}
+init();
+
+// ── SPX technicals + GAP Insurance trigger rules ──────────────────────────────
+let spxData=null;
+async function loadSPX(){
+  try{ const r=await fetch('/api/gap-insurance/check'); if(!r.ok) return; spxData=await r.json(); renderSPX(); renderGAP(); renderMELOC(); }
+  catch(e){ console.warn('SPX load failed:',e); }
+}
+function renderSPX(){
+  if(!spxData) return; const d=spxData;
+  $('spx_price').textContent='$'+d.price.toLocaleString('en-US',{minimumFractionDigits:2});
+  const chg=d.dayMovePct;
+  $('spx_change').textContent=(chg>=0?'+':'')+chg.toFixed(2)+'%';
+  $('spx_change').className='spx-change '+(chg>=0?'up':'dn');
+  $('spx_atr').textContent='$'+d.atr14.toFixed(0);
+  $('spx_ma50').textContent='$'+d.ma50.toLocaleString('en-US',{minimumFractionDigits:0});
+  $('spx_vs50').textContent=(d.pctAbove50MA>=0?'+':'')+d.pctAbove50MA.toFixed(2)+'%';
+  $('spx_vs50').style.color=d.pctAbove50MA>=4.5?'var(--red)':d.pctAbove50MA>=2?'var(--yellow)':'var(--green)';
+  $('spx_hi52').textContent='$'+d.hi52.toLocaleString('en-US',{minimumFractionDigits:0});
+  $('spx_move').textContent='$'+d.dayMove.toFixed(0);
+  $('spx_atr_x').textContent=d.atrMultiples+'×';
+  $('spx_atr_x').style.color=d.atrMultiples>=3?'var(--red)':d.atrMultiples>=2?'var(--yellow)':'var(--text)';
+  $('spx_time').textContent='Last updated: '+d.checkedAt+' CT';
+}
+function renderGAP(){
+  if(!spxData) return; const d=spxData;
+  const r1=d.rule1;
+  $('rule1_card').className='rule-card '+(r1?'trigger':d.pctFromATH>=-3?'watch':'ok');
+  $('rule1_val').textContent=(d.pctFromATH>=0?'AT ATH':d.pctFromATH.toFixed(2)+'% below ATH');
+  $('rule1_thresh').innerHTML=`<span style="color:${r1?'var(--red)':'var(--muted)'}">Threshold: within 1% of $${d.hi52.toLocaleString()}</span>`;
+  const r2=d.rule2;
+  $('rule2_card').className='rule-card '+(r2?'trigger':d.atrMultiples>=2?'watch':'ok');
+  $('rule2_val').textContent=d.atrMultiples+'× ATR ($'+d.dayMove.toFixed(0)+' move)';
+  $('rule2_thresh').innerHTML=`<span style="color:${r2?'var(--red)':'var(--muted)'}">Threshold: 3× ATR ($${(d.atr14*3).toFixed(0)})</span>`;
+  const r3=d.rule3;
+  $('rule3_card').className='rule-card '+(r3?'trigger':d.pctAbove50MA>=3?'watch':'ok');
+  $('rule3_val').textContent='+'+d.pctAbove50MA.toFixed(2)+'% above 50MA';
+  $('rule3_thresh').innerHTML=`<span style="color:${r3?'var(--red)':'var(--muted)'}">Threshold: +4.5% (50MA = $${d.ma50.toFixed(0)})</span>`;
+  const el=$('gap_overall');
+  if(d.anyTriggered){ el.textContent='🔴 BUY GAP INSURANCE'; el.className='gap-status active'; }
+  else { el.textContent='✓ No Triggers Active'; el.className='gap-status clear'; }
+  $('gap_time').textContent='Checked '+d.checkedAt+' CT';
+}
+function renderMELOC(){
+  if(!spxData || !$('meloc_status')) return; const d=spxData;
+  const p=d.pctFromATH;               // >= 0 means at/above the all-time high
+  const c=$('mrule1_card'), v=$('mrule1_val'), t=$('mrule1_thresh'), st=$('meloc_status');
+  let cls, valTxt, statTxt, statCls;
+  if(p>=0){ cls='trigger'; valTxt='AT ATH'; statTxt='🎯 ADD MELOCs — at new highs, scale up'; statCls='active'; }
+  else if(p>=-1){ cls='trigger'; valTxt=p.toFixed(2)+'% below ATH'; statTxt='🎯 ADD MELOCs — timing is right'; statCls='active'; }
+  else if(p>=-3){ cls='watch'; valTxt=p.toFixed(2)+'% below ATH'; statTxt='⏳ Approaching highs — get ready'; statCls='clear'; }
+  else { cls='ok'; valTxt=p.toFixed(2)+'% below ATH'; statTxt='✓ Hold — not near highs yet'; statCls='clear'; }
+  c.className='rule-card '+cls;
+  v.textContent=valTxt;
+  t.innerHTML=`<span style="color:${cls==='trigger'?'var(--red)':'var(--muted)'}">Add zone: within ~1% of 52W high $${d.hi52.toLocaleString()}</span>`;
+  st.textContent=statTxt; st.className='gap-status '+statCls;
+  $('meloc_time').textContent='Checked '+d.checkedAt+' CT';
+}
+loadSPX(); setInterval(loadSPX, 5*60*1000);
+</script>
+</body>
+</html>
