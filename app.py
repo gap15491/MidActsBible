@@ -34,6 +34,14 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("DATABASE_URL"))
 
+# Notes are rich text (HTML) and may embed images as data: URLs, so allow larger bodies.
+app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024
+
+# Only these accounts may embed images in notes (everyone still gets text formatting).
+ADMIN_EMAILS = {e.strip().lower() for e in
+                os.environ.get("ADMIN_EMAILS", "gary@gkpsolutions.net").split(",") if e.strip()}
+NOTE_MAX_CHARS = 8_000_000   # cap per-note HTML (a few embedded images)
+
 db = SQLAlchemy(app)
 
 
@@ -148,6 +156,44 @@ def require_login():
     return u
 
 
+def _is_admin(u):
+    return bool(u) and (u.email or "").strip().lower() in ADMIN_EMAILS
+
+
+# --- Note rich-text (HTML) sanitizing -----------------------------------
+_TAG_RE = re.compile(r"<[^>]+>")
+_SCRIPTISH_PAIR_RE = re.compile(r"(?is)<(script|style|iframe|object|embed)\b.*?</\1\s*>")
+_SCRIPTISH_TAG_RE = re.compile(r"(?is)</?(script|style|iframe|object|embed|link|meta)\b[^>]*>")
+_ON_ATTR_RE = re.compile(r"(?is)\s+on[a-z]+\s*=\s*(\"[^\"]*\"|'[^']*'|[^\s>]+)")
+_JS_URL_RE = re.compile(r"(?is)(href|src)\s*=\s*(['\"])\s*javascript:[^'\"]*(['\"])")
+_IMG_RE = re.compile(r"(?is)<img\b[^>]*>")
+
+
+def _strip_tags(s):
+    return _TAG_RE.sub("", s or "").replace("&nbsp;", " ")
+
+
+def _clean_note_html(html, allow_img):
+    """Remove scripts/handlers; strip <img> entirely unless the author may embed images."""
+    if not html:
+        return ""
+    s = _SCRIPTISH_PAIR_RE.sub("", html)
+    s = _SCRIPTISH_TAG_RE.sub("", s)
+    s = _ON_ATTR_RE.sub("", s)
+    s = _JS_URL_RE.sub(r"\1=\2\3", s)
+    if not allow_img:
+        s = _IMG_RE.sub("", s)
+    return s.strip()
+
+
+def _html_is_empty(html):
+    if not html:
+        return True
+    if _IMG_RE.search(html):
+        return False
+    return _strip_tags(html).replace(" ", " ").strip() == ""
+
+
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -191,7 +237,7 @@ def logout():
 @app.get("/api/me")
 def me():
     u = current_user()
-    return jsonify(email=u.email if u else None)
+    return jsonify(email=u.email if u else None, can_upload=_is_admin(u))
 
 
 # ---------------- notes ----------------
@@ -234,9 +280,12 @@ def put_note():
     except (TypeError, ValueError):
         return jsonify(error="book and chapter are required."), 400
     verse = _norm_verse(data.get("verse"))
-    text = (data.get("text") or "").strip()
+    text = (data.get("text") or "")
+    if len(text) > NOTE_MAX_CHARS:
+        return jsonify(error="That note is too large — try a smaller image."), 413
+    text = _clean_note_html(text, allow_img=_is_admin(u))
     row = Note.query.filter_by(user_id=u.id, book=book, chapter=chapter, verse=verse).first()
-    if not text:
+    if _html_is_empty(text):
         if row:
             db.session.delete(row)
             db.session.commit()
@@ -400,23 +449,6 @@ def del_xref():
 
 
 # ---------------- study topics (per-user notes + attached verses) ----------------
-def _norm_topic_verses(verses):
-    """A key verse is either "Book C:V" (no comment) or {"ref": ..., "note": ...}."""
-    out = []
-    for v in verses[:200]:
-        if isinstance(v, dict):
-            ref = str(v.get("ref") or "")[:60].strip()
-            if not ref:
-                continue
-            note = str(v.get("note") or "")[:4000]
-            out.append({"ref": ref, "note": note} if note.strip() else ref)
-        else:
-            ref = str(v)[:60].strip()
-            if ref:
-                out.append(ref)
-    return out
-
-
 def _topic_row(r):
     try:
         vs = json.loads(r.verses)
@@ -448,16 +480,17 @@ def put_topic():
         return jsonify(error="key is required."), 400
     title = (d.get("title") or "").strip()[:160]
     body = (d.get("body") or "")
-    if len(body) > 200000:
-        body = body[:200000]
+    if len(body) > NOTE_MAX_CHARS:
+        return jsonify(error="That note is too large — try a smaller image."), 413
+    body = _clean_note_html(body, allow_img=_is_admin(u))
     verses = d.get("verses")
     if not isinstance(verses, list):
         verses = []
-    verses = _norm_topic_verses(verses)
+    verses = [str(v)[:60] for v in verses][:200]
     is_custom = bool(d.get("is_custom"))
     row = Topic.query.filter_by(user_id=u.id, key=key).first()
     # A curated topic with nothing saved (no body, no verses, not custom) is deleted.
-    if row and not is_custom and not body.strip() and not verses:
+    if row and not is_custom and _html_is_empty(body) and not verses:
         db.session.delete(row)
         db.session.commit()
         return jsonify(ok=True, deleted=True)
@@ -523,32 +556,13 @@ def search_all():
         else:
             label = f"{n.book} {n.chapter}:{n.verse}"
             nav = {"type": "verse", "book": n.book, "chapter": n.chapter, "verse": n.verse}
-        out.append({"kind": "note", "label": label, "snippet": _snippet(n.text, q), "nav": nav})
+        out.append({"kind": "note", "label": label, "snippet": _snippet(_strip_tags(n.text), q), "nav": nav})
     # topics: title or body
     for t in (Topic.query.filter_by(user_id=u.id)
               .filter(db.or_(db.func.lower(Topic.body).like(like),
                              db.func.lower(Topic.title).like(like))).limit(40).all()):
         out.append({"kind": "topic", "label": (t.title or t.key) + " · topic",
-                    "snippet": _snippet(t.body, q), "nav": {"type": "topic", "key": t.key}})
-    # comments attached to topic key verses
-    for t in (Topic.query.filter_by(user_id=u.id)
-              .filter(db.func.lower(Topic.verses).like(like)).limit(40).all()):
-        try:
-            vs = json.loads(t.verses)
-        except Exception:
-            vs = []
-        if not isinstance(vs, list):
-            vs = []
-        for v in vs:
-            if not isinstance(v, dict):
-                continue
-            note = v.get("note") or ""
-            if q.lower() not in note.lower():
-                continue
-            out.append({"kind": "topic",
-                        "label": (t.title or t.key) + " \u00b7 " + str(v.get("ref") or ""),
-                        "snippet": _snippet(note, q),
-                        "nav": {"type": "topic", "key": t.key}})
+                    "snippet": _snippet(_strip_tags(t.body), q), "nav": {"type": "topic", "key": t.key}})
     # personal cross-reference notes
     for x in (Xref.query.filter_by(user_id=u.id)
               .filter(db.func.lower(Xref.note).like(like)).limit(40).all()):
