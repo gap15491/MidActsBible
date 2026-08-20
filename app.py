@@ -237,7 +237,7 @@ def logout():
 @app.get("/api/me")
 def me():
     u = current_user()
-    return jsonify(email=u.email if u else None, can_upload=_is_admin(u))
+    return jsonify(email=u.email if u else None, can_upload=_is_admin(u), is_admin=_is_admin(u))
 
 
 # ---------------- notes ----------------
