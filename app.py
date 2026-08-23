@@ -383,8 +383,11 @@ def get_xrefs():
         chapter = int(request.args.get("chapter"))
     except (TypeError, ValueError):
         return jsonify(error="book and chapter are required."), 400
+    # Order by INSERTION order (id) within each source verse -- the user's own
+    # sequence is meaningful. (Was: tchapter, tverse -- which reshuffled the list
+    # by target chapter and ignored the target BOOK entirely.)
     rows = (Xref.query.filter_by(user_id=u.id, book=book, chapter=chapter)
-            .order_by(Xref.verse, Xref.tchapter, Xref.tverse).all())
+            .order_by(Xref.verse, Xref.id).all())
     verses = {}
     for r in rows:
         verses.setdefault(str(r.verse), []).append({
@@ -417,15 +420,30 @@ def add_xref():
     if tverse_end is not None and tverse_end <= tverse:
         tverse_end = None  # not a real range
     note = (d.get("note") or "").strip()[:2000]
-    row = Xref.query.filter_by(user_id=u.id, book=book, chapter=chapter, verse=verse,
-                               tbook=tbook, tchapter=tchapter, tverse=tverse,
-                               tverse_end=tverse_end).first()
-    if row:
+    # Optional "id" = EDIT AN EXISTING ROW IN PLACE. Keeping the row (and its id)
+    # is what keeps an edited cross-reference in its original slot in the list;
+    # the old delete-then-insert always sent it to the bottom.
+    xid = d.get("id")
+    try:
+        xid = int(xid) if xid not in (None, "", 0) else None
+    except (TypeError, ValueError):
+        xid = None
+    row = Xref.query.filter_by(id=xid, user_id=u.id).first() if xid is not None else None
+    if row is not None:
+        row.book, row.chapter, row.verse = book, chapter, verse
+        row.tbook, row.tchapter, row.tverse, row.tverse_end = tbook, tchapter, tverse, tverse_end
         row.note = note
     else:
-        row = Xref(user_id=u.id, book=book, chapter=chapter, verse=verse,
-                   tbook=tbook, tchapter=tchapter, tverse=tverse, tverse_end=tverse_end, note=note)
-        db.session.add(row)
+        row = Xref.query.filter_by(user_id=u.id, book=book, chapter=chapter, verse=verse,
+                                   tbook=tbook, tchapter=tchapter, tverse=tverse,
+                                   tverse_end=tverse_end).first()
+        if row:
+            row.note = note
+        else:
+            row = Xref(user_id=u.id, book=book, chapter=chapter, verse=verse,
+                       tbook=tbook, tchapter=tchapter, tverse=tverse,
+                       tverse_end=tverse_end, note=note)
+            db.session.add(row)
     db.session.commit()
     return jsonify(id=row.id, ref=_xref_ref(tbook, tchapter, tverse, tverse_end), note=note,
                    tbook=tbook, tchapter=tchapter, tverse=tverse, tverse_end=tverse_end)
