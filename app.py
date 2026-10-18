@@ -433,7 +433,8 @@ def add_xref():
         row.book, row.chapter, row.verse = book, chapter, verse
         row.tbook, row.tchapter, row.tverse, row.tverse_end = tbook, tchapter, tverse, tverse_end
         row.note = note
-    else:
+    rev = None
+    if row is None:
         row = Xref.query.filter_by(user_id=u.id, book=book, chapter=chapter, verse=verse,
                                    tbook=tbook, tchapter=tchapter, tverse=tverse,
                                    tverse_end=tverse_end).first()
@@ -444,9 +445,27 @@ def add_xref():
                        tbook=tbook, tchapter=tchapter, tverse=tverse,
                        tverse_end=tverse_end, note=note)
             db.session.add(row)
+            # --- Reciprocal link: also add target-start -> source, once. ---
+            # Source is always a single verse, so the reverse points at this one
+            # verse (range targets collapse to their first verse, tverse). Created
+            # independently: later edits/deletes of either side do NOT touch the other.
+            if not (tbook == book and tchapter == chapter and tverse == verse):
+                already = Xref.query.filter_by(
+                    user_id=u.id, book=tbook, chapter=tchapter, verse=tverse,
+                    tbook=book, tchapter=chapter, tverse=verse).first()
+                if already is None:
+                    rev = Xref(user_id=u.id, book=tbook, chapter=tchapter, verse=tverse,
+                               tbook=book, tchapter=chapter, tverse=verse,
+                               tverse_end=None, note=note)
+                    db.session.add(rev)
     db.session.commit()
-    return jsonify(id=row.id, ref=_xref_ref(tbook, tchapter, tverse, tverse_end), note=note,
-                   tbook=tbook, tchapter=tchapter, tverse=tverse, tverse_end=tverse_end)
+    resp = dict(id=row.id, ref=_xref_ref(tbook, tchapter, tverse, tverse_end), note=note,
+                tbook=tbook, tchapter=tchapter, tverse=tverse, tverse_end=tverse_end)
+    if rev is not None:
+        resp["reverse"] = dict(id=rev.id, book=tbook, chapter=tchapter, verse=tverse,
+                               tbook=book, tchapter=chapter, tverse=verse, tverse_end=None,
+                               ref=_xref_ref(book, chapter, verse, None), note=note)
+    return jsonify(**resp)
 
 
 @app.delete("/api/xrefs")
