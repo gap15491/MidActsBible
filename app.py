@@ -515,7 +515,8 @@ def get_topics():
     u = require_login()
     if not u:
         return jsonify(error="Not logged in."), 401
-    rows = Topic.query.filter_by(user_id=u.id).all()
+    # Creation order (id) so topics list in the order they were added, not Postgres heap order.
+    rows = Topic.query.filter_by(user_id=u.id).order_by(Topic.id).all()
     return jsonify(topics=[_topic_row(r) for r in rows])
 
 
